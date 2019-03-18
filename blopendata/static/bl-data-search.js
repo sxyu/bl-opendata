@@ -143,78 +143,89 @@ $(document).ready(function(){
                     }  
                 ); // feats.push
             } // for
-            var jsonSN = {
-              "type":"FeatureCollection",
-              "features": feats
-            };
-              
-            // initialize styles
-            var pointStyle = { 
-                  stroke: "#f0f", 
-                  width: 2,
-                  fill: "rgba(255, 204, 255, 0.4)"
-            };
-            var textStyle = { 
-                fill:"#f1f", 
-                font: '9px Roboto, "Helvetica Neue", Arial, sans-serif', 
-                align: "left", 
-                baseline: "bottom" 
-            };
-          
+            
             Celestial.clear();
-            // add to Celestial
-            Celestial.add({type:"line", 
-                callback: function(error, json) {
-                  if (error) return console.warn(error);
-                  // Load the geoJSON file and transform to correct coordinate system, if necessary
-                  var dsn = Celestial.getData(jsonSN, getCelestialConfig(containerName).transform);
+            if (objsFiltered.length > 0) {
+                var jsonSN = {
+                  "type":"FeatureCollection",
+                  "features": feats
+                };
+                  
+                // initialize styles
+                var pointStyle = { 
+                      stroke: "#f0f", 
+                      width: 2,
+                      fill: "rgba(255, 204, 255, 0.4)"
+                };
+                var textStyle = { 
+                    fill:"#f1f", 
+                    font: '9px Roboto, "Helvetica Neue", Arial, sans-serif', 
+                    align: "left", 
+                    baseline: "bottom" 
+                };
+              
+                // add to Celestial
+                Celestial.add({type:"line", 
+                    callback: function(error, json) {
+                      if (error) return console.warn(error);
+                      // Load the geoJSON file and transform to correct coordinate system, if necessary
+                      var dsn = Celestial.getData(jsonSN, getCelestialConfig(containerName).transform);
 
-                  // Add to celestial objects container in d3
-                  Celestial.container.selectAll(".snrs")
-                    .data(dsn.features)
-                    .enter().append("path")
-                    .attr("class", "snr"); 
-                  // Trigger redraw to display changes
-                  Celestial.redraw();
-                }, //callback
-                redraw: function() {
-                  // Select the added objects by class name as given previously
-                  Celestial.container.selectAll(".snr").each(function(d) {
-                    // If point is visible (this doesn't work automatically for points)
-                    if (Celestial.clip(d.geometry.coordinates)) {
-                      // get point coordinates
-                      var pt = Celestial.mapProjection(d.geometry.coordinates);
-                      // object radius in pixel, could be varable depending on e.g. dimension or magnitude 
-                      var r = Math.pow(0.25 * d.properties.dim, 0.5); // replace 20 with dimmest magnitude in the data
-                   
-                      // draw on canvas
-                      //  Set object styles fill color, line color & width etc.
-                      Celestial.setStyle(pointStyle);
-                      // Start the drawing path
-                      Celestial.context.beginPath();
-                      // Thats a circle in html5 canvas
-                      Celestial.context.arc(pt[0], pt[1], r, 0, 2 * Math.PI);
-                      // Finish the drawing path
-                      Celestial.context.closePath();
-                      // Draw a line along the path with the prevoiusly set stroke color and line width      
-                      Celestial.context.stroke();
-                      // Fill the object path with the prevoiusly set fill color
-                      Celestial.context.fill();     
+                      // Add to celestial objects container in d3
+                      Celestial.container.selectAll(".snrs")
+                        .data(dsn.features)
+                        .enter().append("path")
+                        .attr("class", "snr"); 
+                      // Trigger redraw to display changes
+                      Celestial.redraw();
+                    }, //callback
+                    redraw: function() {
+                      // Select the added objects by class name as given previously
+                      Celestial.container.selectAll(".snr").each(function(d) {
+                        // If point is visible (this doesn't work automatically for points)
+                        if (Celestial.clip(d.geometry.coordinates)) {
+                          // get point coordinates
+                          var pt = Celestial.mapProjection(d.geometry.coordinates);
+                          // object radius in pixel, could be varable depending on e.g. dimension or magnitude 
+                          var r = Math.pow(0.25 * d.properties.dim, 0.5); // replace 20 with dimmest magnitude in the data
+                       
+                          // draw on canvas
+                          //  Set object styles fill color, line color & width etc.
+                          Celestial.setStyle(pointStyle);
+                          // Start the drawing path
+                          Celestial.context.beginPath();
+                          // Thats a circle in html5 canvas
+                          Celestial.context.arc(pt[0], pt[1], r, 0, 2 * Math.PI);
+                          // Finish the drawing path
+                          Celestial.context.closePath();
+                          // Draw a line along the path with the prevoiusly set stroke color and line width      
+                          Celestial.context.stroke();
+                          // Fill the object path with the prevoiusly set fill color
+                          Celestial.context.fill();     
 
-                      // Set text styles       
-                      Celestial.setTextStyle(textStyle);
-                      // and draw text on canvas
-                      Celestial.context.fillText(d.properties.name, pt[0] + r - 1, pt[1] - r + 1);
-                    }      
-                  }); 
-                } //redraw
-            }); //add
-            if ($('#' + containerName).parent().parent().parent().css('display') != 'none') {
-                Celestial.rotate({ center : [objsFiltered[0][0], objsFiltered[0][1], 0] });
-                updateCelestial(containerName);
+                          // Set text styles       
+                          Celestial.setTextStyle(textStyle);
+                          // and draw text on canvas
+                          Celestial.context.fillText(d.properties.name, pt[0] + r - 1, pt[1] - r + 1);
+                        }      
+                      }); 
+                    } //redraw
+                }); //add
+                if ($('#' + containerName).parent().parent().parent().css('display') != 'none') {
+                    // if shown
+                    Celestial.rotate({ center : [objsFiltered[0][0], objsFiltered[0][1], 0] });
+                    updateCelestial(containerName);
+                } else {
+                    celestialCenterPos = [objsFiltered[0][0], objsFiltered[0][1], 0];
+                    celestialNeedUpdate = true;
+                }
             } else {
-                celestialCenterPos = [objsFiltered[0][0], objsFiltered[0][1], 0];
-                celestialNeedUpdate = true;
+                if ($('#' + containerName).parent().parent().parent().css('display') != 'none') {
+                    // if shown
+                    updateCelestial(containerName);
+                } else {
+                    celestialNeedUpdate = true;
+                }
             }
         } // addObjsToCelestial
         
@@ -433,7 +444,7 @@ $(document).ready(function(){
                                 // for alt names, add reference to canonical name
                                 suggest.push({ value: autoCompleteList[i].value + " \u2192 " + autoCompleteList[i].data, data : prefix + autoCompleteList[i].data });
                             }
-                            if (suggest.length >= 500) break;
+                            if (suggest.length >= 100) break;
                         }
                     }
                     
