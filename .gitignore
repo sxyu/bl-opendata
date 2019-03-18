@@ -5,7 +5,7 @@ env/
 __pycache__/
 
 instance/
-data/
+data/simbad-ids.pkl
 logs/
 
 .pytest_cache/
