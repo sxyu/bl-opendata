@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>{% block title %}{% endblock %} - Breakthrough Listen</title>
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="Open Data Archive">
+<meta name="author" content="Alex Yu/Breakthrough Listen">
+
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='combined.min.css') }}"/>
+    
+<body id="page-top">
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+      <div class="container">
+            <a class="navbar-brand mr-1" href="{{ url_for('core.home') }}"><strong>Breakthrough Listen</strong> Open Data Archive</a>
+      </div>
+  </nav>
+
+  <div id="wrapper">    
+    <div id="content-wrapper">
+
+      <section>
+        <div class="container">
+            {% block content %} {% endblock %}
+        </div>
+      </section>
+      
+      <!-- Sticky Footer -->
+      <footer class="footer">
+          <div class="container">
+              <div class="copyright text-center text-muted">
+                <span>Copyright © Breakthrough Listen / BSRC 2019</span>
+              </div>
+          </div>
+      </footer>
+    </div>
+  </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+ 
+  <script src="{{ url_for('static', filename='d3.combined.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='combined.min.js') }}"></script>
+ 
+  {% block footer %}{% endblock %}
+</body>
