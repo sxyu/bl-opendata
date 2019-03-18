@@ -21,7 +21,7 @@ $(document).ready(function(){
               interactive: true,
               controls: false, 
               container: containerName,   // ID of parent element, e.g. div
-              datapath: "http://127.0.0.1:5000/data/",  // Path/URL to data files, empty = subfolder 'data'
+              datapath: "/data/",  // Path/URL to data files, empty = subfolder 'data'
               stars: {
                 show: true, limit: 5, colors: true, 
                 style: { fill: "#ffffff", opacity: 1 },
