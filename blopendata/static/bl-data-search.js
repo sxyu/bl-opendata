@@ -1,13 +1,6 @@
 $(document).ready(function(){
         /*-- Celestial initialization --*/
-        /* D3-Celestial sky map
-           Copyright 2015 Olaf Frohn https://github.com/ofrohn, see LICENSE
-           
-           Edit configuration to your liking and display in browser. 
-           Data files in folder data for stars and DSOs, number indicates limit magnitude, 
-           or roll your own with the format template in templ.json
-        */
-        
+        /* D3-Celestial sky map, copyright 2015 Olaf Frohn https://github.com/ofrohn */
         /* create a default Celestial config object, with parent object ID 'containerName' */
         var getCelestialConfig = function(containerName = "celestial-map") { 
           return {
@@ -20,8 +13,8 @@ $(document).ready(function(){
               adaptable: true,
               interactive: true,
               controls: false, 
-              container: containerName,   // ID of parent element, e.g. div
-              datapath: "/data/",  // Path/URL to data files, empty = subfolder 'data'
+              container: containerName,   // ID of parent element
+              datapath: "/data/",  // Path/URL to data files
               stars: {
                 show: true, limit: 5, colors: true, 
                 style: { fill: "#ffffff", opacity: 1 },
@@ -35,18 +28,18 @@ $(document).ready(function(){
                 size: 4,
                 exponent: -0.28,
                 data: 'stars.6.json'
-              },
+              }, // stars
               dsos: {
-                show: true,    // Show Deep Space Objects 
-                limit: 5,      // Show only DSOs brighter than limit magnitude
-                names: true,   // Show DSO names
-                desig: true,   // Show short DSO names
-                namelimit: 3.5,  // Show only names for DSOs brighter than namelimit
+                show: true,
+                limit: 5,
+                names: true,
+                desig: true,
+                namelimit: 3.5,
                 namestyle: { fill: "#aaaaaa", font: '9px Roboto, "Helvetica Neue", Arial, sans-serif', align: "left", baseline: "top" },
-                size: null,    // Optional seperate scale size for DSOs, null = stars.size
-                exponent: 1.4, // Scale exponent for DSO size, larger = more non-linear
-                data: 'dsos.bright.json',  // Data source for DSOs
-                symbols: {  //DSO symbol styles
+                size: null,
+                exponent: 1.4,
+                data: 'dsos.bright.json',
+                symbols: {
                   gg: {shape: "circle", fill: "#999999"},                                 // Galaxy cluster
                   g:  {shape: "ellipse", fill: "#999999"},                                // Generic galaxy
                   s:  {shape: "ellipse", fill: "#999999"},                                // Spiral galaxy
@@ -65,7 +58,7 @@ $(document).ready(function(){
                   dn: {shape: "square", fill: "#999999", stroke: "#cccccc", width: 2},    // Dark nebula grey
                   pos:{shape: "marker", fill: "#cccccc", stroke: "#cccccc", width: 1.5}   // Generic marker
                 }
-              },
+              }, // dsos
               planets : {
                 show: false,
               },
@@ -87,7 +80,7 @@ $(document).ready(function(){
                 galactic: { show: true, stroke: "#cc6666", width: 1.3, opacity: 0.7 },
                 supergalactic: { show: false, stroke: "#cc66cc", width: 1.3, opacity: 0.7 }
                 } // lines
-          }; // return
+          }; // return object
         }; // getCelestialConfig
         
         var celestialNeedUpdate = false;

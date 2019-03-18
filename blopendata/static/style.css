@@ -43,6 +43,36 @@ section {
   position:relative;
 }
 
+@media only screen and (max-width: 600px) {
+  #results {
+    overflow-x: scroll;
+  }
+  #search-options .row > div {
+    margin-top: 25px;
+  }
+  div.container a.navbar-brand {
+    font-size: 14px;
+  }
+  section{
+    padding-top: 70px;
+  }
+  #fl-box td{
+    font-size: 12px;
+  }
+  .featherlight button.featherlight-close-icon {
+    position: fixed;
+    top: 10px;
+    right: 15px;
+  }
+}
+
+@media only screen and (min-width: 800px) {
+  div.col-narrow{
+    max-width: 13%;
+  }
+}
+
+
 #results-table {
   width:100%;
   font-size: 13px;
