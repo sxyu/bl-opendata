@@ -421,6 +421,7 @@ $(document).ready(function(){
                 lookup: function(request, response) {        
                     // custom lookup function to allow lookup of objects using alternative names
                     var suggest = [];
+		    if (query.value.length == 0) response({ suggestions: [] });
                     var queryStr = query.value.toLowerCase();
                     var prefix = '';
                     if (queryStr.length > 0 && (queryStr[0] == '!' || queryStr[0] == '/')) {

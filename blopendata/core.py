@@ -27,22 +27,28 @@ simbad_cache = {}
 def _query_simbad(target):
     """ query SIMBAD database for synonyms for 'target' """
     global simbad_cache
+    target = target.strip();
     if target not in simbad_cache.keys():
         ids = None
         clean_exts = ['_OFF', '_OFFA', '_OFFB']
-        # target_clean = target
-        # for ext in clean_exts:
-            # if target[-len(ext):] == ext:
-                # target_clean = target[:-len(ext)]
         ids = Simbad.query_objectids(target)
         if ids is not None:
             ids_lst = []
             for id in ids:
                 spl = id[0].split()
+                if spl[0] == '*' or spl[0] == '**' or spl[0] == 'V*':
+                    spl[0] = "" # cut off *, **, V*
                 if spl[0] == "NAME":
-                    ids_lst.append(' '.join(spl[1:]))
+                    # put at beginning
+                    ids_lst.append(ids_lst[0] if len(ids_lst) > 0 else 0)
+                    ids_lst[0] = ' '.join(spl[1:])
                 else:
-                    ids_lst.append(spl[0] + ' '.join(spl[1:]))
+                    # cut off space, unless first word is surrounded by []
+                    if len(spl[0]) == 0 or spl[0][-1] != ']':
+                        ids_lst.append(spl[0] + ' '.join(spl[1:]))
+                    else:
+                        # do not remove first space
+                        ids_lst.append(' '.join(spl))
             simbad_cache[target] = ids_lst
             if target not in ids_lst:
                 ids_lst.append(target)
