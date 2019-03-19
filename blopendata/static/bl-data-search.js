@@ -413,15 +413,16 @@ $(document).ready(function(){
             targets = targetsList;
             
             queryBox.autocomplete({
-                lookupLimit: 25,
                 onSelect: function (suggestion) {
                     queryBox[0].value = suggestion['data']
                     updateQuery();
                 },
-                lookup: function(request, response) {        
-                    // custom lookup function to allow lookup of objects using alternative names
+                lookup: function(request, response) {
+                    // custom lookup function to allow lookup of objects using alternative identifiers
                     var suggest = [];
-		    if (query.value.length == 0) response({ suggestions: [] });
+                    if (query.value.length == 0) {
+                        response({ suggestions: [] });
+                    }
                     var queryStr = query.value.toLowerCase();
                     var prefix = '';
                     if (queryStr.length > 0 && (queryStr[0] == '!' || queryStr[0] == '/')) {
@@ -444,6 +445,19 @@ $(document).ready(function(){
                     
                     // display the filtered results
                     response({ suggestions: suggest });
+                },
+                beforeRender : function(container, suggestions) {
+                    var eles = $(container).find(".autocomplete-suggestion");
+                    // remove highlight from right side of arrow (canonical id for alt id)
+                    for (var i = 0; i < eles.length; i++) {
+                        var htm = eles[i].innerHTML;
+                        var spl = htm.split("\u2192");
+                        if (spl.length == 2) {
+                            spl[1] = spl[1].replace(new RegExp('(<strong>|</strong>)', 'g'), '');
+                            htm = spl[0] + "\u2192" + spl[1];
+                            $(eles[i]).html(htm);
+                        }
+                    }
                 }
             });
         });
