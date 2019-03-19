@@ -213,12 +213,7 @@ $(document).ready(function(){
                     celestialNeedUpdate = true;
                 }
             } else {
-                if ($('#' + containerName).parent().parent().parent().css('display') != 'none') {
-                    // if shown
-                    updateCelestial(containerName);
-                } else {
-                    celestialNeedUpdate = true;
-                }
+                celestialNeedUpdate = true;
             }
         } // addObjsToCelestial
         
