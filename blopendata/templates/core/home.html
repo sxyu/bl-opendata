@@ -6,15 +6,43 @@
 
 {% block content %}
      <!-- description -->
+     <div class="pic-moving"></div>
+
+     <h2>Open Data Archive</h2>
      <p>Breakthrough Listen data are stored in technical formats that require specialized software to analyze,
         and file sizes can be several gigabytes. Before downloading files from our public archive,
         we recommend you familiarize yourself with how the data are stored. A good place to start is
         with the educational materials provided by <a href="http://seti.berkeley.edu/listen" target="_blank">Berkeley SETI Research Center</a>.</p>
+     <p>Access analysis results and description from <a href="http://seti.berkeley.edu/lband2017" target="_blank">The Breakthrough
+                        Listen Search for Advanced Life: 1.1-1.9 GHz observations of 692 Nearby Stars</a>.</p>
+
+    <div id="target-names-note-card" class="card">
+            <div class="card-header">
+                <a class="card-link" data-toggle="collapse" href="#target-note"><i class="fas fa-question"></i> Note About Target Names<i class="fas fa-chevron-down dropdown-marker" title="Dropdown"></i></a>
+            </div>
+            <div id="target-note" class="collapse" data-parent="#main">
+                <div class="card-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Iodine absorption features:</strong> Targets ending in &quot;_I2&quot; have iodine absorption features across part of the spectrum (to determine precise radial velocities).
+                            </div>
+                            <div class="col-sm-6">
+                            <strong>Off-source target:</strong> Targets ending in &quot;_OFF&quot; are &quot;off source targets,&quot; i.e. the telescope is aimed slightly away (typically less than 2 degrees Dec) from the intended target in order to get a baseline of the background.
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+    </div>
+
         
     <!-- search control -->
+    <h2>Search Form</h2>
     <div class="panel panel-default">        
         <div id="query-form">
-            <h4>Search</h4>
             <input type="text" class="form-control basic-auto-complete" id="query" placeholder="Type to search...">
             <span id="input-error"></span>
             <!-- search options -->
@@ -61,7 +89,7 @@
                                     </div>
                                 </div>
                                 <div class="col-lg input-panel">
-                                    <h4><i class="fa fa-search-location"></i> Position (Virtual Observatory)</h4>
+                                    <h4><i class="fa fa-search-location"></i> Position (<acronym title="Virtual Observatory">VO</acronym>)</h4>
                                     <div class="custom-control custom-checkbox">
                                      <input type="checkbox" class="custom-control-input" id="pos-enable"></input>
                                       <label class="custom-control-label" for="pos-enable">Enable</label>
@@ -174,6 +202,16 @@
         query_api_url : "{{ url_for('core.api_query') }}",
         targets_api_url : "{{ url_for('core.api_list_targets') }}?simbad",
     };
+    // search from Breakthrough initiatives website
+    (function() {
+        $('#search_text').click(function() {
+            if ($(this).val() == 'Search') $(this).val('');
+        });
+
+        $('#search_text').blur(function() {
+            if ($(this).val() == '') $(this).val('Search');
+        });
+    })();
 </script>
 <script src = "{{ url_for('static', filename='bl-data-search.js') }}"></script>
 {% endblock %}

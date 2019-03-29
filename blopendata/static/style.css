@@ -1,9 +1,107 @@
+/** Breakthrough Initiative styles **/
+@font-face {font-family: "Myriad Pro Regular"; font-weight: normal; font-style: normal; src: local("Myriad Pro Regular"), url("MYRIADPRO-REGULAR.woff") format("woff");}
+@font-face {font-family: "Myriad Pro Semibold"; font-weight: normal; font-style: normal; src: local("Myriad Pro Semibold"), url("MYRIADPRO-SEMIBOLD.woff") format("woff");}
+
+#outer {width: 940px; min-height: 100%; margin: 0px auto; position: relative;}
+body.wide #outer {width: auto;}
+
+body.bi {
+    line-height: 1.2;
+}
+
+#header ul, #footer ul {
+    margin: 0; padding: 0;
+    line-height: 1.278
+}
+#main ul {
+    margin-left: 0px;
+    padding-left: 13px;
+}
+
+input.txt {width: 300px; height: 18px; margin-bottom: 10px; border: 1px #CCCCCC solid;}
+input.txt.x {width: 275px;}
+input.txt.warn {border-color: #FF0000;}
+
+body.bi {font-family: "Myriad Pro Regular", Arial, Helvetica, sans-serif; font-size: 14px; color: #000000; background: #FFFFFF; min-width: 1100px; height: 100%;}
+#header {width: 100%; height: 150px; position: relative;}
+body.wide #header {width: 940px; margin: 0px auto;}
+#header h1 {width: 230px; height: 60px; position: absolute; left: 0px; top: 65px; overflow: hidden;}
+#header h1 img {display: block; width: 210px; height: 58px;}
+#header p.back {width: 19px; height: 34px; position: absolute; left: -50px; top: 66px;}
+#header p.back a {text-indent: -9000px; background: url("/static/back.gif") no-repeat; display: block; width: 19px; height: 34px; overflow: hidden;}
+#header p.back a:hover {background-position: 0px -34px;}
+#header div.menu {position: absolute; left: 230px; top: 61px;}
+#header div.menu ul {font-family: "Myriad Pro Semibold"; font-size: 18px; text-transform: uppercase; margin-bottom: 4px; list-style: none; overflow: hidden;}
+#header div.menu ul li {margin-right: 12px; float: left;}
+#header div.menu ul li a {color: #000000; float: left;}
+#header div.menu ul li a:hover {color: #60748A;}
+#header div.menu ul li a.active {color: #60748A; text-decoration: none;}
+#main h1, #main h2, #main h3, #main h4, #main h5, #main h6 {
+    font-weight: 700;
+}
+
+#main div.pic-moving {
+  position: relative;
+  width: 940px; height: 210px; overflow: visible;
+  background: #fff url('/static/image1.jpg') no-repeat 50% -80px fixed;
+  background-clip: content-box;
+  background-origin: content-box;
+  margin: auto;
+}
+
+#main {width: 100%;}
+#main h2 {font-family: "Myriad Pro Semibold"; font-size: 20px; text-transform: uppercase; margin: 40px 0px 20px;}
+#main h2.hp {font-size: 20px; margin: 60px 0px 0px;}
+#main h3 {font-family: "Myriad Pro Semibold"; font-size: 18px; font-weight: normal; margin: 40px 0px 12px;}
+#main h3.i {font-family: "Myriad Pro Regular"; font-size: 14px; font-style: italic;}
+#main h4 {font-family: "Myriad Pro Semibold"; font-size: 16px; font-weight: normal; margin: 20px 0px 12px;}
+#main p {line-height: 24px; margin: 6px 0px; text-align:justify }
+
+#search {width: 180px; padding-bottom: 6px; border-bottom: 4px #000000 solid; position: absolute; right: 0px; top: 65px; overflow: hidden;}
+#search input.txt {font-family: "Myriad Pro Regular"; font-size: 14px; width: 142px; margin: 0px; border: none; float: left; padding:0 }
+#search input.img {margin: 0px; margin-right: 10px; float: right;}
+
+#footer {width: 940px; height: 90px; margin: -90px auto 0px; position: relative; overflow: hidden;}
+#footer ul.projects {list-style: none; position: absolute; left: 0px; top: 3px; overflow: hidden; margin:0; padding:0}
+#footer ul.projects li {width: 88px; margin-bottom: 15px;}
+#footer ul.projects a {text-indent: -9000px; display: block; width: 88px;}
+#footer ul.projects a.p1 {background-image: url(/static/s-logo-bp.jpg); height: 23px;}
+#footer ul.projects a.p1:hover {background-position: 0px -23px;}
+#footer ul.projects a.p2 {background-image: url(/static/s-logo-bjc.jpg); height: 34px;}
+#footer ul.projects a.p2:hover {background-position: 0px -34px;}
+#footer p.cr {font-size: 10px; color: #A8A9AD; position: absolute; left: 220px; top: 39px;}
+#footer p.cr a {color: #A8A9AD;}
+#footer p.cr a:hover {color: #60748A;}
+#footer div.menu {position: absolute; left: 220px; top: 0px;}
+#footer div.menu ul {font-family: "Myriad Pro Semibold"; font-size: 15px; text-transform: uppercase; list-style: none; overflow: hidden;}
+#footer div.menu ul li {margin-right: 12px; float: left;}
+#footer div.menu ul li a {color: #A8A9AD; float: left;}
+#footer div.menu ul li a:hover {color: #60748A;}
+#footer div.menu ul li a.active {color: #60748A; text-decoration: none;}
+#footer div.links {position: absolute; right: 0px; top: 0px;}
+#footer div.links p {font-size: 15px; font-weight: bold; color: #58A0EC; text-align: right; text-transform: uppercase; margin-bottom: 6px;}
+#footer div.links ul {list-style: none; overflow: hidden;}
+#footer div.links li {height: 28px; margin-left: 13px; float: left;}
+#footer div.links li a {text-indent: -9000px; height: 28px; float: left;}
+#footer div.links li a.n1 {background-image: url(/static/n1.jpg); width: 63px;}
+#footer div.links li a.n2 {background-image: url(/static/n2.jpg); width: 28px;}
+#footer div.links li a.n3 {background-image: url(/static/n3.jpg); width: 28px;}
+#footer div.links li a:hover {background-position: 0px -28px;}
+
+body.bi a {color: #60748A; text-decoration: underline; outline: none;}
+body.bi a:hover {color: #58A0EC;}
+
+/** custom styles **/
+
+body.bi a.card-link {color: #60748A; text-decoration: none; outline: none;}
+body.bi a.card-link:hover {color: #58A0EC;}
+
 header {
   padding: 156px 0 100px;
 }
 
 section {
-  padding: 100px 0;
+  padding: 0 0 100px 0;
 }
 
 .footer {
@@ -24,6 +122,11 @@ section {
   display: block !important;
 }
 
+#query {
+  font-family: "Myriad Pro Regular";
+  border-radius: 0;
+}
+
 #image-query-form {
   padding: 30px 0;
 }
@@ -33,8 +136,14 @@ section {
   color: #cc2222
 }
 
-#search-tips-card .row div{
+.card-link > .fas {
+  margin-right: 4px;
+}
+
+#search-tips-card .row div, #target-names-note-card .row div{
     padding:10px 15px;
+    text-align: justify;
+    line-height: 1.3;
 }
 
 #results {
@@ -43,7 +152,21 @@ section {
   position:relative;
 }
 
+body.bi .pagination .page-item .page-link {
+  border-radius: 0;
+}
+body.bi .custom-select {
+  border-radius: 0;
+  margin: 0 5px;
+}
+body.bi .form-control-sm {
+  border-radius: 0;
+}
+
 @media only screen and (max-width: 600px) {
+  #main div.pic-moving {
+    background-attachment: scroll;
+  }
   #results {
     overflow-x: scroll;
   }
@@ -68,14 +191,14 @@ section {
 
 @media only screen and (min-width: 800px) {
   div.col-narrow{
-    max-width: 13%;
+    max-width: 14%;
   }
 }
-
 
 #results-table {
   width:100%;
   font-size: 13px;
+  white-space: nowrap
 }
 
 #query-form {
@@ -86,22 +209,30 @@ section {
   margin-bottom: 14px;
 }
 
+#target-names-note-card {
+  margin-top:20px;
+}
+
 #search-options-card {
-  margin:12px 0 10px 0; 
+  margin:10px 0 8px 0; 
 }
 
 #search-tips-card  {
-  margin:10px 0 11px 0; 
+  margin:8px 0 9px 0; 
 }
 
 #celestial-card {
-  margin:10px 0 22px 0;
+  margin:8px 0 22px 0;
 }
 
-#celestial-credits {
+#main #celestial-credits {
   margin: auto;
   text-align: center;
   width: 200px;
+}
+
+body.bi .card {
+  border-radius: 0;
 }
 
 .card .card-header{
@@ -124,7 +255,17 @@ section {
 }
 
 #search-options-card .custom-control-label::before, #search-options-card .custom-control-label::after {
-  top: 0.2rem;
+  top: 0;
+  border-radius: 0;
+}
+
+#search-options-card .input-group .btn {
+  border-radius: 0;
+}
+
+#main #search-options-card h4 {
+  font-family: "Myriad Pro Regular", Arial, Helvetica, sans-serif; 
+  margin-top: 0;
 }
 
 #query-form .card .input-panel label {
@@ -150,11 +291,11 @@ section {
 .dropdown-marker {
     position: absolute;
     right: 15px;
-    top: 10px;
+    top: 7px;
 }
 
 a.fake-link, a.fake-link:hover, a.fake-link:not([href]):not([tabindex]), a.fake-link:hover:not([href]):not([tabindex]) {
-    color: #007bff;
+    color: #60748A;
 }
 
 /* autocomplete */
