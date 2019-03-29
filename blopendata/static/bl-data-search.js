@@ -354,7 +354,8 @@ $(document).ready(function(){
                   dataTable.clear();
                   var entries = result['data'];
                   for (var i = 0; i < entries.length; i++) {
-                    var date = new Date(entries[i]['utc'])
+                    var date = new Date(entries[i]['utc']);
+                    var ftype = entries[i]['file_type'];
                     dataTable.row.add([
                         date.toLocaleDateString() + " " + date.toLocaleTimeString(),
                         Math.round(entries[i]['mjd'] * PRECISION) / PRECISION,
@@ -363,7 +364,7 @@ $(document).ready(function(){
                         Math.round(entries[i]['ra'] * PRECISION) / PRECISION,
                         Math.round(entries[i]['decl'] * PRECISION) / PRECISION,
                         Math.round(entries[i]['center_freq'] * PRECISION) / PRECISION,
-                        entries[i]['file_type'],
+                        ftype,
                         _humanFileSize(entries[i]['size'], false),
                         '<a class="download-link" href="'+entries[i]['url']+'" title="MD5Sum: ' + entries[i]['md5sum'] + '"><i class="fas fa-cloud-download-alt"></i></a>',
                     ]);

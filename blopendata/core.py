@@ -56,46 +56,6 @@ def _query_simbad(target):
             simbad_cache[target] = [target]
     return simbad_cache[target]
 
-def _humanize_bytes(size_bytes, precision=1):
-    """Return a humanized string representation of a number of bytes.
-
-    Arguments:
-        size_bytes(int): the number of bytes
-        precision (int): how many digits to display after the decimal
-
-    Examples:
-        >>> humanize_bytes(1)
-        '1 byte'
-        >>> humanize_bytes(1024)
-        '1.0 kB'
-        >>> humanize_bytes(1024*123)
-        '123.0 kB'
-        >>> humanize_bytes(1024*12342)
-        '12.1 MB'
-        >>> humanize_bytes(1024*12342,2)
-        '12.05 MB'
-        >>> humanize_bytes(1024*1234,2)
-        '1.21 MB'
-        >>> humanize_bytes(1024*1234*1111,2)
-        '1.31 GB'
-        >>> humanize_bytes(1024*1234*1111,1)
-        '1.3 GB'
-        """
-    abbrevs = (
-        (1<<50, 'PB'),
-        (1<<40, 'TB'),
-        (1<<30, 'GB'),
-        (1<<20, 'MB'),
-        (1<<10, 'KB'),
-        (1, 'bytes')
-    )
-    if size_bytes == 1:
-        return '1 byte'
-    for factor, suffix in abbrevs:
-        if size_bytes >= factor:
-            break
-    return "%.*f %s" % (precision, size_bytes / factor, suffix)
-
 # cache SIMBAD
 if os.path.exists(SIMBAD_CACHE_PATH):
     simbad_cache = pickle.load(open(SIMBAD_CACHE_PATH, 'rb'))
@@ -199,6 +159,9 @@ def api_query():
         
     if 'file-types' in request.args:
         ftypes_str = request.args.get('file-types').split(',')
+        if 'fits' in ftypes_str:
+            # data is synonym for fits
+            ftypes_str.append('data')
         sql_cmd += " AND file_type IN ({})".format(",".join(["%s"] * len(ftypes_str)))
         sql_args.extend(ftypes_str)
         
