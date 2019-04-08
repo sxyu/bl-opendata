@@ -56,46 +56,6 @@ def _query_simbad(target):
             simbad_cache[target] = [target]
     return simbad_cache[target]
 
-def _humanize_bytes(size_bytes, precision=1):
-    """Return a humanized string representation of a number of bytes.
-
-    Arguments:
-        size_bytes(int): the number of bytes
-        precision (int): how many digits to display after the decimal
-
-    Examples:
-        >>> humanize_bytes(1)
-        '1 byte'
-        >>> humanize_bytes(1024)
-        '1.0 kB'
-        >>> humanize_bytes(1024*123)
-        '123.0 kB'
-        >>> humanize_bytes(1024*12342)
-        '12.1 MB'
-        >>> humanize_bytes(1024*12342,2)
-        '12.05 MB'
-        >>> humanize_bytes(1024*1234,2)
-        '1.21 MB'
-        >>> humanize_bytes(1024*1234*1111,2)
-        '1.31 GB'
-        >>> humanize_bytes(1024*1234*1111,1)
-        '1.3 GB'
-        """
-    abbrevs = (
-        (1<<50, 'PB'),
-        (1<<40, 'TB'),
-        (1<<30, 'GB'),
-        (1<<20, 'MB'),
-        (1<<10, 'KB'),
-        (1, 'bytes')
-    )
-    if size_bytes == 1:
-        return '1 byte'
-    for factor, suffix in abbrevs:
-        if size_bytes >= factor:
-            break
-    return "%.*f %s" % (precision, size_bytes / factor, suffix)
-
 # cache SIMBAD
 if os.path.exists(SIMBAD_CACHE_PATH):
     simbad_cache = pickle.load(open(SIMBAD_CACHE_PATH, 'rb'))
@@ -199,18 +159,21 @@ def api_query():
         
     if 'file-types' in request.args:
         ftypes_str = request.args.get('file-types').split(',')
+        if 'fits' in ftypes_str:
+            # data is synonym for fits
+            ftypes_str.append('data')
         sql_cmd += " AND file_type IN ({})".format(",".join(["%s"] * len(ftypes_str)))
         sql_args.extend(ftypes_str)
         
     cen_coord, rad = None, -1.
     if 'pos-ra' in request.args and 'pos-dec' in request.args and 'pos-rad' in request.args:
-        ra = int(request.args.get('pos-ra'))
-        decl = int(request.args.get('pos-dec'))
-        rad = int(request.args.get('pos-rad'))
+        ra = float(request.args.get('pos-ra'))
+        decl = float(request.args.get('pos-dec'))
+        rad = float(request.args.get('pos-rad'))
         # try to limit the range of queried ra, decl based on the required position/radius
         decl_min, decl_max = max(decl - rad, -90.), min(decl + rad, 90.)
         from math import cos
-        ra_per_dec = cos(decl)
+        ra_per_dec = abs(cos(decl))
         ra_min, ra_max = ra - ra_per_dec * rad, ra + ra_per_dec * rad
         sql_cmd += " AND decl BETWEEN %s AND %s"
         sql_args.extend([decl_min, decl_max])

@@ -14,7 +14,7 @@ $(document).ready(function(){
               interactive: true,
               controls: false, 
               container: containerName,   // ID of parent element
-              datapath: "/data/",  // Path/URL to data files
+              datapath: "data/",  // Path/URL to data files
               stars: {
                 show: true, limit: 5, colors: true, 
                 style: { fill: "#ffffff", opacity: 1 },
@@ -354,16 +354,18 @@ $(document).ready(function(){
                   dataTable.clear();
                   var entries = result['data'];
                   for (var i = 0; i < entries.length; i++) {
-                    var date = new Date(entries[i]['utc'])
+                    var date = new Date(entries[i]['utc']);
+                    var ftype = entries[i]['file_type'];
+                    var dateTimeOptions = { timeZone:'UTC' };
                     dataTable.row.add([
-                        date.toLocaleDateString() + " " + date.toLocaleTimeString(),
+                        date.toLocaleDateString('en-GB', dateTimeOptions) + " " + date.toLocaleTimeString('en-GB', dateTimeOptions),
                         Math.round(entries[i]['mjd'] * PRECISION) / PRECISION,
                         entries[i]['telescope'],
                         entries[i]['target'],
                         Math.round(entries[i]['ra'] * PRECISION) / PRECISION,
                         Math.round(entries[i]['decl'] * PRECISION) / PRECISION,
                         Math.round(entries[i]['center_freq'] * PRECISION) / PRECISION,
-                        entries[i]['file_type'],
+                        ftype,
                         _humanFileSize(entries[i]['size'], false),
                         '<a class="download-link" href="'+entries[i]['url']+'" title="MD5Sum: ' + entries[i]['md5sum'] + '"><i class="fas fa-cloud-download-alt"></i></a>',
                     ]);
@@ -489,7 +491,7 @@ $(document).ready(function(){
         });
         
         // handle table row click (show more info about data file)
-          $('#results-table tbody').on('click', 'tr', function () {
+        $('#results-table tbody').on('click', 'tr', function () {
             var flbox = $('#fl-box-inner');
             var flhtml = "";
             var $this = $(this);

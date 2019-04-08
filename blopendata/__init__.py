@@ -11,7 +11,6 @@ app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(
     SECRET_KEY='dev',
     DEBUG=True
-    #DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
 )
 
 if test_config is None:
@@ -28,6 +27,7 @@ app.config['MYSQL_DATABASE_USER'] = 'readonly'
 app.config['MYSQL_DATABASE_PASSWORD'] = ''
 app.config['MYSQL_DATABASE_DB'] = 'btldata'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['APPLICATION_ROOT'] = '/opendata/'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 mysql.init_app(app)
 
@@ -45,5 +45,4 @@ Compress(app)
 @app.errorhandler(400)
 def custom400(error):
     response = jsonify({'message': error.description['message']})
-
 
