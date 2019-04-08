@@ -5,13 +5,18 @@ from flask_compress import Compress
 
 test_config = None
 
-app = Flask(__name__, instance_relative_config=True)
+app = Flask(__name__, instance_relative_config=True, static_url_path='/opendata/static')
 
 # create and configure the app
 app.config.from_mapping(
     SECRET_KEY='dev',
     DEBUG=True
 )
+
+app.config['MYSQL_DATABASE_USER'] = 'readonly'
+app.config['MYSQL_DATABASE_PASSWORD'] = ''
+app.config['MYSQL_DATABASE_DB'] = 'btldata'
+app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 
 if test_config is None:
     # load the instance config, if it exists, when not testing
@@ -23,11 +28,6 @@ else:
 mysql = MySQL()
  
 # MySQL configurations
-app.config['MYSQL_DATABASE_USER'] = 'readonly'
-app.config['MYSQL_DATABASE_PASSWORD'] = ''
-app.config['MYSQL_DATABASE_DB'] = 'btldata'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
-app.config['APPLICATION_ROOT'] = '/opendata/'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 mysql.init_app(app)
 
