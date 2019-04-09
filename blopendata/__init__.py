@@ -5,7 +5,7 @@ from flask_compress import Compress
 
 test_config = None
 
-app = Flask(__name__, instance_relative_config=True, static_url_path='/opendata/static')
+app = Flask(__name__, instance_relative_config=True)
 
 # create and configure the app
 app.config.from_mapping(
