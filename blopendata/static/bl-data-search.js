@@ -244,9 +244,9 @@ $(document).ready(function(){
         // floating-point printing precision
         const PRECISION = 1e4;
         jQuery.fn.dataTableExt.oSort['file-size-pre']  = function(s) {
-            console.log(s);
+            // console.log(s);
             var unit = s.substring(s.length-3);
-            console.log(unit);
+            // console.log(unit);
             var factor = 1;
             switch (unit) {
                 case "GiB":
@@ -281,7 +281,7 @@ $(document).ready(function(){
         /* send an API call to update the query table, retrieving up to 'lim' entries
          * (0 = retrieve all) */
         var _updateQuery = function(lim = 0) {
-                                console.log("DRX");
+            // console.log("DRX");
             // construct API call
             var data = {};
             // query string (target)
