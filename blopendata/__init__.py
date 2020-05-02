@@ -13,10 +13,14 @@ app.config.from_mapping(
     DEBUG=True
 )
 
+# app.config['MYSQL_DATABASE_USER'] = 'vb24576'
+# app.config['MYSQL_DATABASE_PASSWORD'] = ''
+# app.config['MYSQL_DATABASE_DB'] = 'btldata'
+# app.config['MYSQL_DATABASE_HOST'] = '107.178.214.242'
 app.config['MYSQL_DATABASE_USER'] = 'readonly'
 app.config['MYSQL_DATABASE_PASSWORD'] = ''
 app.config['MYSQL_DATABASE_DB'] = 'btldata'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['MYSQL_DATABASE_HOST'] = 'bl-db'
 
 if test_config is None:
     # load the instance config, if it exists, when not testing
@@ -24,9 +28,9 @@ if test_config is None:
 else:
     # load the test config if passed in
     app.config.from_mapping(test_config)
-    
+
 mysql = MySQL()
- 
+
 # MySQL configurations
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 mysql.init_app(app)
@@ -38,11 +42,10 @@ except OSError:
     pass
 
 from . import core
-app.register_blueprint(core.bp) 
+app.register_blueprint(core.bp)
 
 Compress(app)
 
 @app.errorhandler(400)
 def custom400(error):
     response = jsonify({'message': error.description['message']})
-

@@ -11,16 +11,16 @@
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css">
 <link rel="stylesheet" href="static/style.min.css">
 <link rel="stylesheet" href="static/combined.min.css"/>
-    
+
 <body id="page-top">
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container">
-            <a class="navbar-brand mr-1" href="{{ url_for('core.home') }}"><strong>Breakthrough Listen</strong> Open Data Archive</a>
+            <a class="navbar-brand mr-1" href="{{ url_for('core.home') }}"><strong>Breakthrough Listen</strong> Open Data Archive - Testing Version</a>
       </div>
   </nav>
 
-  <div id="wrapper">    
+  <div id="wrapper">
     <div id="content-wrapper">
 
       <section>
@@ -28,7 +28,7 @@
             {% block content %} {% endblock %}
         </div>
       </section>
-      
+
       <!-- Sticky Footer -->
       <footer class="footer">
           <div class="container">
@@ -41,9 +41,9 @@
   </div>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
- 
+
   <script src="static/d3.combined.min.js"></script>
   <script src="static/combined.min.js"></script>
- 
+
   {% block footer %}{% endblock %}
 </body>
