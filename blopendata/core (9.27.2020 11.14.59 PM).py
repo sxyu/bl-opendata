@@ -28,7 +28,6 @@ from statistics import mode
 openDataAPI ="http://35.236.84.6:5001/api/"
 grades = {"fine","mid","time"}
 fil_grades = {"0000":"fine","0001":"time","0002":"mid"}
-grades_fil = {"fine":"0000","time":"0001","mid":"0002"}
 
 
 ### End Gavin
@@ -131,8 +130,8 @@ def api_list_file_types():
     return jsonify(ftypes)
 
 
-# orig_print = print
-# print = str
+orig_print = print
+print = str
 
 
 @bp.route('/api/query-files', methods=('GET', 'POST'))
@@ -182,41 +181,41 @@ def api_query():
             ftypes_str.append('data')
         sql_cmd += " AND file_type IN ({})".format(",".join(["%s"] * len(ftypes_str)))
         sql_args.extend(ftypes_str)
-    print("TEST")
+
     cen_coord, rad = None, -1.
     if 'pos-ra' in request.args and 'pos-dec' in request.args and 'pos-rad' in request.args:
         #TODO: Fix issue with telescopes and examine results: Complete
-        # Make this work. (Can use small angle aproximation but be careful about going over the top not being accounted for): Complete
+        # Make this work. (Can use small angle aproximation but be careful about going over the top not being accounted for)
         #Spy on simbad and steal their ideas
         #Talk to Danny Price, implement on parkes
         #Finding calibrator operations, 3C295 ect. pulsar,
-        #Speed up database with indecies: Complete
-        #Improve Quarying limits: Complete
+        #Speed up database with indecies
+        #Improve Quarying limits
         #Link the api documentation: Complete
         ra = float(request.args.get('pos-ra'))
         decl = float(request.args.get('pos-dec'))
         rad = float(request.args.get('pos-rad'))
         # try to limit the range of queried ra, decl based on the required position/radius
-        decl_min, decl_max = max(decl - rad, -90.), min(decl + rad, 90.) #made an adjustmant here
-        from math import cos,pi
-        ra_per_dec = 1/abs(cos(decl*pi/180))
+        decl_min, decl_max = max(decl - rad, -90.), min(decl + rad, 90.)
+        from math import cos
+        ra_per_dec = abs(cos(decl))
         ra_min, ra_max = ra - ra_per_dec * rad, ra + ra_per_dec * rad
         sql_cmd += " AND decl BETWEEN %s AND %s"
-
+        print(sql_cmd)
         sql_args.extend([decl_min, decl_max])
-        if ra_max - ra_min >= 360 or decl-rad <-90 or decl+rad>90:
+        if ra_max - ra_min >= 360.:
             pass # can't filter
         elif ra_max > 360. or ra_min < 0:
             ra_min = (ra_min + 360.) % 360.
             ra_max = (ra_max + 360.) % 360.
-            # if ra_max < ra_min: #made an adjustment here
-            sql_cmd += " AND ra NOT BETWEEN %s AND %s"
-            sql_args.extend([ra_max, ra_min])
+            if ra_min < ra_max:
+                sql_cmd += " AND ra NOT BETWEEN %s AND %s"
+                sql_args.extend([ra_min, ra_max])
         else:
             sql_cmd += " AND ra BETWEEN %s AND %s"
             sql_args.extend([ra_min, ra_max])
         cen_coord = SkyCoord(ra = ra * u.deg, dec = decl * u.deg)
-        #orig_print(sql_cmd)
+
     if 'time-start' in request.args:
         t_start = Time(float(request.args.get('time-start')), format='mjd')
         sql_cmd +=  " AND utc_observed >= %s"
@@ -236,37 +235,15 @@ def api_query():
         f_end = float(request.args.get('freq-end'))
         sql_cmd +=  " AND center_freq <= %s"
         sql_args.append(f_end)
-
-    print("test")
-    if 'grades' in request.args:
-        grade = request.args.get('grades').split(' ')
-        for g in grade:
-            if g not in grades:
-                return jsonify({'result':'failure','message':'Invalid grade type must be one of "fine","mid","time"'})
-        sql_cmd += " AND ((file_type != %s AND file_type != %s) OR (file_type = %s AND SUBSTRING_INDEX(SUBSTRING_INDEX(url, '_', -1),'.',1) IN ({}))".format(",".join(["%s"] * len(grade)))
-        sql_args.append('hdf5')
-        sql_args.append('filterbank')
-        sql_args.append('hdf5')
-        sql_args.extend(grade)
-        sql_cmd += "OR (file_type = %s AND SUBSTRING_INDEX(SUBSTRING_INDEX(url, '.', -2),'.',1) in ({})))".format(",".join(["%s"] * len(grade)))
-        sql_args.append('filterbank')
-        sql_args.extend([grades_fil[g] for g in grade])
-
-
     if 'cadence' in request.args:
-        sql_cmd += " AND cadence != %s AND cadence is not Null"
+        sql_cmd += " AND cadence != %s"
         sql_args.append("Unknown")
 
     if 'limit' in request.args:
         lim = int(request.args.get('limit'))
         sql_cmd +=  " LIMIT %s"
-        if 'cadence' in request.args:
-            sql_args.append(lim*10)
-        else:
-            sql_args.append(lim)
+        sql_args.append(lim)
 
-
-    print(sql_cmd, sql_args)
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute(sql_cmd, sql_args)
@@ -274,9 +251,7 @@ def api_query():
     conn.close()
 
     data = []
-    i=0
     for row in table:
-        i+=1
         entry = {}
         entry['id'] = row[0] #may be needed
         entry['target'] = row[3]
@@ -298,56 +273,72 @@ def api_query():
                 # out of position query range
                 continue
         data.append(entry)
-
 #Gavin #//TODO: Fix this for non hd5 data
-    # if 'grades' in request.args:
-    #     grade = request.args.get('grades').split(' ')
-    #     for g in grade:
-    #         if g not in grades:
-    #             return jsonify({'result':'failure','message':'Invalid grade type must be one of "fine","mid","time"'})
-    #     new_data = []
-    #     for entry in data:
-    #             usefulPortion = entry['url'].split("/")[-1].split("_")
-    #             g = usefulPortion[-1].split('.')[0]
-    #             fileType = entry['file_type'].lower()
-    #             if fileType != 'hdf5' and fileType != 'filterbank':
-    #                 new_data.append(entry)
-    #             else:
-    #                 if fileType == 'filterbank':
-    #                     g = fil_grades[g]
-    #                 if g in grade:
-    #                     new_data.append(entry)
-    #     data = new_data
+    if 'grades' in request.args:
+        grade = request.args.get('grades').split(' ')
+        for g in grade:
+            if g not in grades:
+                return jsonify({'result':'failure','message':'Invalid grade type must be one of "fine","mid","time"'})
+        new_data = []
+        for entry in data:
+                usefulPortion = entry['url'].split("/")[-1].split("_")
+                g = usefulPortion[-1].split('.')[0]
+                fileType = entry['file_type'].lower()
+                if fileType != 'hdf5' and fileType != 'filterbank':
+                    new_data.append(entry)
+                else:
+                    if fileType == 'filterbank':
+                        g = fil_grades[g]
+                    if g in grade:
+                        new_data.append(entry)
+        data = new_data
 
 
     if 'cadence' in request.args:
-        if 'limit' in request.args:
-            lim = int(request.args.get('limit'))
         if request.args.get('cadence')=='True':
             new_data  = []
-            cadences = set()
+            cadences = []
             for entry in data:
                 ##print(entry['url'])
                 cadence_url = entry['cadence_url']
-                if cadence_url not in cadences:
-                    cadences.add(cadence_url)
-                    #orig_print(cadence_url)
-                    cadence_url = openDataAPI + "get-cadence/"+cadence_url
-                    split_url = cadence_url.split('-')
-                    #orig_print(split_url)
-                    if 'telescopes' in request.args:
-                        split_url[2] = split_url[2]+'telescopes:' + request.args.get('telescope') + ";"
-                    if 'file-types' in request.args:
-                        split_url[2] = split_url[2]+'fileTypes:' + request.args.get('file-types') + ";"
-                    if 'grades' in request.args:
-                        split_url[2] = split_url[2] +'grades:' + request.args.get('grades')
-                    cadence_url = "-".join(split_url)
-                    entry['cadence_url']=cadence_url
-                    #if cadence_url == 'Unknown' or cadence_url not in cadences:
-                    new_data.append(entry)
-                    if len(new_data)>= lim:
-                        break
+                #orig_print(cadence_url)
+                try:
+                    if cadence_url==None:
+                        cadence_url =getCadence(entry['id'])
+                        #orig_print(cadence_url)
+                        if cadence_url ==None:
+                            #orig_print(entry['id'])
+                            result = requests.get(openDataAPI+'get-cadence-url',params = {'url':entry['url']})
+                            ##print(result)
+                            cadence_url = result.json()['url']
+                        ##Update mySQL table possibly
+                    if cadence_url != "Unknown":
+                        cadence_url = openDataAPI + "get-cadence/"+cadence_url
+                        split_url = cadence_url.split('-')
+                        #orig_print(split_url)
+                        if 'telescopes' in request.args:
+                            split_url[2] = split_url[2]+'telescopes:' + request.args.get('telescope') + ";"
+                        if 'file-types' in request.args:
+                            split_url[2] = split_url[2]+'fileTypes:' + request.args.get('file-types') + ";"
+                        if 'grades' in request.args:
+                            split_url[2] = split_url[2] +'grades:' + request.args.get('grades')
+                        cadence_url = "-".join(split_url)
+                except:
+                    cadence_url = 'Unknown'
+                    # sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
+                    # conn = mysql.connect()
+                    # cursor = conn.cursor()
+                    # cursor.execute(sql_cmd,[entry['id']])
+                    # conn.accept()
+                    # cursor.close()
+                    # conn.close()
 
+                entry['cadence_url']=cadence_url
+                #if cadence_url == 'Unknown' or cadence_url not in cadences:
+                if cadence_url not in cadences and cadence_url != 'Unknown':
+                    #entry.pop('id')
+                    new_data.append(entry)
+                    cadences.append(cadence_url)
             return jsonify({'result': 'success', 'data': new_data})
     #[entry.pop('id') for entry in data] #removing id from final json
     #print("Query ended")
@@ -376,138 +367,119 @@ def get_cadence_url():
                                d["url"] set to query result set on result "success"
                                 is a cadence url as described above.
     """
-    # print("Get URL request Began")
-    #
-    # if 'url' not in request.args:
-    #     return jsonify({'result': 'error', 'message': 'url is required'})
-    #
-    # url  = request.args.get('url')
-    # #print(url)
-    # usefulPortion = url.split("/")[-1].split("_")
-    # fileType  = usefulPortion[-1].split('.')[-1]
-    # days = 0
-    # seconds = 0
-    # grade = None
-    # if fileType == 'fits':
-    #     return jsonify({'result': 'error','url':'Unknown'})#Todo make this more elegant
-    # elif fileType == 'raw':
-    #     days = float(usefulPortion[2])
-    # elif fileType == 'fil':
-    #     days = float(usefulPortion[3])
-    #     seconds = float(usefulPortion[4])
-    # else:
-    #     days = float(usefulPortion[1])
-    #     seconds = float(usefulPortion[2])
-    #     #grade = usefulPortion[-1].split('.')[0]
-    #
-    #
-    # sql_cmd = 'SELECT * FROM files WHERE '
-    # sql_args = []
-    #
-    # t_start = Time(days, format='mjd')
-    # #print(t_start.utc.iso)
-    # sql_cmd +=  " utc_observed >= %s"
-    # sql_args.append(str(t_start.utc.iso))
-    #
-    # t_end = Time(days+1, format='mjd')
-    # sql_cmd +=  " AND utc_observed <= %s"
-    # sql_args.append(str(t_end.utc.iso))
-    #
-    # #TODO: Make this work for non GBT data
-    # sql_cmd += " And project = GBT"
-    #
-    # sql_cmd += "ORDER BY utc_observed"
-    # conn = mysql.connect()
-    # cursor = conn.cursor()
-    # cursor.execute(sql_cmd, sql_args)
-    # table = cursor.fetchall()
-    # conn.close()
-    #
-    # data = []
-    # for row in table:
-    #     entry = {}
-    #     entry['id'] = row[0]
-    #     entry['target'] = row[3]
-    #     entry['url'] = row[10]
-    #     entry['utc'] = row[2]
-    #     entry['cadence-url'] = row[11]
-    #     data.append(entry)
-    # #print(len(data))
-    # if grade:
-    #     data = list(filter(lambda x: x['url'].split('/')[-1].split("_")[-1].split('.')[0] == grade,data))
-    #
-    # index = [x['url'] for x in data].index(url)
-    # if index <0:
-    #     sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
-    #     #print(sql_cmd,[id])
-    #     conn = mysql.connect()
-    #     cursor = conn.cursor()
-    #     cursor.execute(sql_cmd,[id])
-    #     conn.commit()
-    #     cursor.close()
-    #     conn.close()
-    #     return jsonify({'result':'success','url':'Unknown'})
-    # if data[index]['cadence-url'] != None:
-    #     if data[index]['cadence-url']=="Unknown":
-    #         return jsonify({'result': 'success','url':'Unknown'})
-    #     return jsonify({'result': 'success','url':openDataAPI + "get-cadence/"+data[index]['cadence-url']})
-    # targets, indices = getTargets(data)
-    # id = data[index]['id']
-    # #data = data[max(index-5,0):min(index+6,len(data)-1)]
-    # index = indices[index]
-    # start = max(index-5,0)
-    # stop = min(index+6,len(data)-1)
-    # index = -1
-    # targetSet = targets[start:stop]
-    # for i in range(0,len(targetSet)-5):
-    #     #print(i,targetSet)
-    #     if isCadence(i,targetSet):
-    #         #print(i)
-    #         index=start+i
-    #         len=6
-    #         break
-    # if index<0:
-    #     for i in range(max(0,len(targetSet)-5)):
-    #         if target in targetSet[i:i+4] and isPartialCadence(i,targetSet):
-    #             index=start+i
-    #             len=4
-    #             break
-    #     if index<0:
-    #         sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
-    #         #print(sql_cmd,[id])
-    #         conn = mysql.connect()
-    #         cursor = conn.cursor()
-    #         cursor.execute(sql_cmd,[id])
-    #         conn.commit()
-    #         cursor.close()
-    #         conn.close()
-    #         return jsonify({'result':'success','url':'Unknown'})
-    # index = indices.index(index)
-    # num = indices.index(min(len(targets)-1,indices[index]+len))-index
-    # cadenceUrl = str(num) +'--' + data[index]['url'].split("/")[-1]
-    # get_cadence(cadenceUrl) #Should update the mysql table
-    # #print(cadenceUrl)
-    # #print("Get URL request ended")
-    # return jsonify({'result': 'success','url':openDataAPI + "get-cadence/"+ cadenceUrl})
-    sql_cmd = 'SELECT * FROM files WHERE url = %s'
-    sql_args = [request.args.get('url')]
+    #print("Get URL request Began")
 
+    if 'url' not in request.args:
+        return jsonify({'result': 'error', 'message': 'url is required'})
+
+    url  = request.args.get('url')
+    #print(url)
+    usefulPortion = url.split("/")[-1].split("_")
+    fileType  = usefulPortion[-1].split('.')[-1]
+    days = 0
+    seconds = 0
+    grade = None
+    if fileType == 'fits':
+        return jsonify({'result': 'error','url':'Unknown'})#Todo make this more elegant
+    elif fileType == 'raw':
+        days = float(usefulPortion[2])
+    elif fileType == 'fil':
+        days = float(usefulPortion[3])
+        seconds = float(usefulPortion[4])
+    else:
+        days = float(usefulPortion[1])
+        seconds = float(usefulPortion[2])
+        #grade = usefulPortion[-1].split('.')[0]
+
+
+    sql_cmd = 'SELECT * FROM files WHERE '
+    sql_args = []
+
+    t_start = Time(days, format='mjd')
+    #print(t_start.utc.iso)
+    sql_cmd +=  " utc_observed >= %s"
+    sql_args.append(str(t_start.utc.iso))
+
+    t_end = Time(days+1, format='mjd')
+    sql_cmd +=  " AND utc_observed <= %s"
+    sql_args.append(str(t_end.utc.iso))
+
+    #TODO: Make this work for non GBT data
+    sql_cmd += " And project = GBT"
+
+    sql_cmd += "ORDER BY utc_observed"
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute(sql_cmd, sql_args)
     table = cursor.fetchall()
     conn.close()
+
     data = []
     for row in table:
         entry = {}
         entry['id'] = row[0]
+        entry['target'] = row[3]
+        entry['url'] = row[10]
         entry['utc'] = row[2]
         entry['cadence-url'] = row[11]
         data.append(entry)
-    if len(data)!=1:
-        return jsonify({"result":'failure','url':'Error','reason':'Duplicate entries with the same URl.'})
-    cadence_url = data[0]['cadence-url']
-    return jsonify({'result':'success','url':openDataAPI + 'get-cadence/'+cadence_url})
+    #print(len(data))
+    if grade:
+        data = list(filter(lambda x: x['url'].split('/')[-1].split("_")[-1].split('.')[0] == grade,data))
+
+    index = [ x['url'] for x in data].index(url)
+    if index <0:
+        sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
+        #print(sql_cmd,[id])
+        conn = mysql.connect()
+        cursor = conn.cursor()
+        cursor.execute(sql_cmd,[id])
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'result':'success','url':'Unknown'})
+    if data[index]['cadence-url'] != None:
+        if data[index]['cadence-url']=="Unknown":
+            return jsonify({'result': 'success','url':'Unknown'})
+        return jsonify({'result': 'success','url':openDataAPI + "get-cadence/"+data[index]['cadence-url']})
+    targets, indices = getTargets(data)
+    id = data[index]['id']
+    #data = data[max(index-5,0):min(index+6,len(data)-1)]
+    index = indices[index]
+    start = max(index-5,0)
+    stop = min(index+6,len(data)-1)
+    index = -1
+    targetSet = targets[start:stop]
+    for i in range(0,len(targetSet)-5):
+        #print(i,targetSet)
+        if isCadence(i,targetSet):
+            #print(i)
+            index=start+i
+            len=6
+            break
+    if index<0:
+        for i in range(max(0,len(targetSet)-5)):
+            if target in targetSet[i:i+4] and isPartialCadence(i,targetSet):
+                index=start+i
+                len=4
+                break
+        if index<0:
+            sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
+            #print(sql_cmd,[id])
+            conn = mysql.connect()
+            cursor = conn.cursor()
+            cursor.execute(sql_cmd,[id])
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'result':'success','url':'Unknown'})
+    index = indices.index(index)
+    num = indices.index(min(len(targets)-1,indices[index]+len))-index
+    cadenceUrl = str(num) +'--' + data[index]['url'].split("/")[-1]
+    get_cadence(cadenceUrl) #Should update the mysql table
+    #print(cadenceUrl)
+    #print("Get URL request ended")
+    return jsonify({'result': 'success','url':openDataAPI + "get-cadence/"+ cadenceUrl})
 
 
 
@@ -578,19 +550,17 @@ def get_cadence(cadence_url):
     seconds = float(usefulPortion[2])
     time = days + seconds / 10**len(usefulPortion[2])
     grade,fileType = usefulPortion[-1].split('.')
-    inStorage = cadence_url.split("/")[-1].split("-")
-    inStorage = "-".join([inStorage[0],""]+inStorage[2:])
-    print(inStorage)
-    sql_cmd = 'SELECT * FROM files where cadence = %s'
+
+    sql_cmd = 'SELECT * FROM files WHERE '
     sql_args = []
-    sql_args.append(inStorage)
-    # t_start = Time(time, format='mjd')
-    # sql_cmd +=  " utc_observed >= %s"
-    # sql_args.append(str(t_start.utc.iso))
-    #
-    # t_end = Time(time+.2, format='mjd')
-    # sql_cmd +=  " AND utc_observed <= %s"
-    # sql_args.append(str(t_end.utc.iso))
+
+    t_start = Time(time, format='mjd')
+    sql_cmd +=  " utc_observed >= %s"
+    sql_args.append(str(t_start.utc.iso))
+
+    t_end = Time(time+.2, format='mjd')
+    sql_cmd +=  " AND utc_observed <= %s"
+    sql_args.append(str(t_end.utc.iso))
     sql_cmd += "ORDER BY utc_observed" #..........
 
     conn = mysql.connect()
@@ -617,18 +587,18 @@ def get_cadence(cadence_url):
         data.append(entry)
     #print(len(data))
     ##data = [x for x in data if x['url'].split("/")[-1].split("_")[-1].split('.')[0] == grade]
-    # index = [x['url'].split("/")[-1] for x in data].index(cadence_url.split("/")[-1].split("-")[-1])
-    # cadence = data[index:index+size]
-    # for entry in data:
-    #     sql_cmd = "Update files Set cadence = %s Where id = %s;"
-    #     id = entry['id']
-    #     #orig_print(id)
-    #     conn = mysql.connect()
-    #     cursor = conn.cursor()
-    #     cursor.execute(sql_cmd,[cadence_url.split("/")[-1],id])
-    #     conn.commit()
-    #     cursor.close()
-    #     conn.close()
+    index = [x['url'].split("/")[-1] for x in data].index(cadence_url.split("/")[-1].split("-")[-1])
+    cadence = data[index:index+size]
+    for entry in cadence:
+        sql_cmd = "Update files Set cadence = %s Where id = %s;"
+        id = entry['id']
+        #orig_print(id)
+        conn = mysql.connect()
+        cursor = conn.cursor()
+        cursor.execute(sql_cmd,[cadence_url.split("/")[-1],id])
+        conn.commit()
+        cursor.close()
+        conn.close()
 
     filterDict = {}
     if filters[0]:
@@ -636,7 +606,7 @@ def get_cadence(cadence_url):
             if filter:
                 filterDict[filter.split(':')[0]] = filter.split(':')[1]
     newCadence = []
-    for entry in data:
+    for entry in cadence:
         allowed = True
         fileType =entry['file_type'].lower()
         if 'telescopes' in filterDict.keys():
