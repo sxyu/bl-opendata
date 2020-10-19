@@ -7,7 +7,7 @@
 - Instructions
   - After installing the dependencies use call python3 run.py to run the program, make sure that you have a port forwarded for the website to work
   - There are two components to this program, the openData website and the backend API which are detailed below
-  - Url for both website and API calls: http://35.236.84.6:5001/
+  - Url for both website and API calls: http://seti.berkeley.edu:5000/
   
 - API
   - The method descriptions are present as docstrings within core.py. A list of possible API requests: 
