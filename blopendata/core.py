@@ -189,10 +189,13 @@ def api_query():
         # Make this work. (Can use small angle aproximation but be careful about going over the top not being accounted for): Complete
         #Spy on simbad and steal their ideas
         #Talk to Danny Price, implement on parkes
-        #Finding calibrator operations, 3C295 ect. pulsar,
+        #Finding calibrator operations, 3C295 ect. pulsar , matching calibrator to
         #Speed up database with indecies: Complete
         #Improve Quarying limits: Complete
         #Link the api documentation: Complete
+        #Write an update.py
+        #One database to rule them all or not
+        #Data quality, compute metadata, search on metadata
         ra = float(request.args.get('pos-ra'))
         decl = float(request.args.get('pos-dec'))
         rad = float(request.args.get('pos-rad'))
@@ -332,7 +335,7 @@ def api_query():
                 if cadence_url not in cadences:
                     cadences.add(cadence_url)
                     #orig_print(cadence_url)
-                    cadence_url = openDataAPI + "get-cadence/"+cadence_url
+                    cadence_url = openDataAPI + "get-cadence/--"+cadence_url
                     split_url = cadence_url.split('-')
                     #orig_print(split_url)
                     if 'telescopes' in request.args:
@@ -507,7 +510,7 @@ def get_cadence_url():
     if len(data)!=1:
         return jsonify({"result":'failure','url':'Error','reason':'Duplicate entries with the same URl.'})
     cadence_url = data[0]['cadence-url']
-    return jsonify({'result':'success','url':openDataAPI + 'get-cadence/'+cadence_url})
+    return jsonify({'result':'success','url':openDataAPI + 'get-cadence/--'+cadence_url})
 
 
 
@@ -571,15 +574,16 @@ def get_cadence(cadence_url):
                                           'decl', 'center_freq', 'file_type', 'size', 'md5sum', 'url']
     """
 
-    usefulPortion = cadence_url.split("/")[-1].split('_')
-    size = int(cadence_url.split("/")[-1].split('-')[0])
+    id = cadence_url.split("/")[-1].split('-')[-1]
+    #size = int(cadence_url.split("/")[-1].split('-')[0])
     filters = cadence_url.split("/")[-1].split('-')[1].split(";")
-    days = float(usefulPortion[1])
-    seconds = float(usefulPortion[2])
-    time = days + seconds / 10**len(usefulPortion[2])
-    grade,fileType = usefulPortion[-1].split('.')
-    inStorage = cadence_url.split("/")[-1].split("-")
-    inStorage = "-".join([inStorage[0],""]+inStorage[2:])
+    # days = float(usefulPortion[1])
+    # seconds = float(usefulPortion[2])
+    # time = days + seconds / 10**len(usefulPortion[2])
+    #grade,fileType = usefulPortion[-1].split('.')
+    # inStorage = cadence_url.split("/")[-1].split("-")
+    # inStorage = "-".join([inStorage[0],""]+inStorage[2:])
+    inStorage = id
     print(inStorage)
     sql_cmd = 'SELECT * FROM files where cadence = %s'
     sql_args = []

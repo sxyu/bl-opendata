@@ -103,54 +103,87 @@ conn.close()
 
 
 #GBT work
-#for day in range(57348,59001):
-if(True):
-    for day in range(57348,59001):
-        #Fetch data
-        sql_cmd = 'SELECT * FROM files WHERE '
-        sql_args = []
+#for day in range(57348,59015):
+for day in range(57348,57349):
+    #Fetch data
+    sql_cmd = 'SELECT * FROM files WHERE '
+    sql_args = []
 
-        t_start = Time(day, format='mjd')
-        #print(t_start.utc.iso)
-        sql_cmd +=  " utc_observed >= %s"
-        sql_args.append(str(t_start.utc.iso))
+    # t_start = Time(day, format='mjd')
+    # #print(t_start.utc.iso)
+    # sql_cmd +=  " utc_observed >= %s"
+    # sql_args.append(str(t_start.utc.iso))
+    #
+    # t_end = Time(day+1, format='mjd')
+    # sql_cmd +=  " AND utc_observed <= %s"
+    # sql_args.append(str(t_end.utc.iso))
 
-        t_end = Time(day+1, format='mjd')
-        sql_cmd +=  " AND utc_observed <= %s"
-        sql_args.append(str(t_end.utc.iso))
-
-        sql_cmd += " AND project = %s"
-        sql_args.append("GBT")
-        sql_cmd += " ORDER BY utc_observed"
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute(sql_cmd, sql_args)
-        table = cursor.fetchall()
-        conn.close()
-
-
-        data = []
-        for row in table:
-            entry = {}
-            entry['id'] = row[0]
-            entry['target'] = row[3]
-            entry['url'] = row[10]
-            entry['utc'] = row[2]
-            entry['cadence-url'] = row[11]
-            data.append(entry)
+    sql_cmd += "project = %s"
+    sql_args.append("GBT")
+    sql_cmd += " ORDER BY utc_observed"
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd, sql_args)
+    table = cursor.fetchall()
+    conn.close()
 
 
+    data = []
+    for row in table:
+        entry = {}
+        entry['id'] = row[0]
+        entry['target'] = row[3]
+        entry['url'] = row[10]
+        entry['utc'] = row[2]
+        entry['cadence-url'] = row[11]
+        data.append(entry)
 
-        #Find cadences
-        skip =0
-        url = 'Unknown'
-        for i in range(len(data)):
-            print(i)
-            id =data[i]['id']
-            if skip:
-                skip-=1
+
+
+    #Find cadences
+    skip =0
+    url = 'Unknown'
+    for i in range(len(data)):
+        print(i)
+        id =data[i]['id']
+        if skip:
+            skip-=1
+            sql_cmd = "Update files Set cadence = %s Where id = %s;"
+            print(id,url)
+            #orig_print(id)
+            conn = mysql.connect()
+            cursor = conn.cursor()
+            cursor.execute(sql_cmd,[url,id])
+            conn.commit()
+            cursor.close()
+            conn.close()
+        else:
+            targets, indices = getTargets(data)
+            index = indices[i]
+            stop = min(index+6,len(data)-1)
+            targetSet = targets[index:stop]
+            print(targetSet)
+            if len(targetSet)==6 and isCadence(0,targetSet):
+                index = indices.index(index)
+                num = indices.index(min(len(targets)-1,indices[index]+6))-index
+                url = id
+                skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                print(id,url)
+                id = entry['id']
+                #orig_print(id)
+                conn = mysql.connect()
+                cursor = conn.cursor()
+                cursor.execute(sql_cmd,[url,id])
+                conn.commit()
+                cursor.close()
+                conn.close()
+            elif len(targetSet)>=4 and isPartialCadence(0,targetSet):
+                index = indices.index(index)
+                num = indices.index(min(len(targets)-1,indices[index]+4))-index
+                url = id
+                skip = num-1
+                sql_cmd = "Update files Set cadence = %s Where id = %s;"
+                id = entry['id']
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()
@@ -159,53 +192,19 @@ if(True):
                 cursor.close()
                 conn.close()
             else:
-                targets, indices = getTargets(data)
-                index = indices[i]
-                stop = min(index+6,len(data)-1)
-                targetSet = targets[index:stop]
-                print(targetSet)
-                if len(targetSet)==6 and isCadence(0,targetSet):
-                    index = indices.index(index)
-                    num = indices.index(min(len(targets)-1,indices[index]+6))-index
-                    url = str(num) +'--' + data[index]['url'].split("/")[-1]
-                    skip = num-1
-                    sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                    id = entry['id']
-                    #orig_print(id)
-                    conn = mysql.connect()
-                    cursor = conn.cursor()
-                    cursor.execute(sql_cmd,[url,id])
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
-                elif len(targetSet)>=4 and isPartialCadence(0,targetSet):
-                    index = indices.index(index)
-                    num = indices.index(min(len(targets)-1,indices[index]+4))-index
-                    url = str(num) +'--' + data[index]['url'].split("/")[-1]
-                    skip = num-1
-                    sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                    id = entry['id']
-                    #orig_print(id)
-                    conn = mysql.connect()
-                    cursor = conn.cursor()
-                    cursor.execute(sql_cmd,[url,id])
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
-                else:
-                    sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
-                    #print(sql_cmd,[id])
-                    conn = mysql.connect()
-                    cursor = conn.cursor()
-                    cursor.execute(sql_cmd,[id])
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
+                sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
+                #print(sql_cmd,[id])
+                conn = mysql.connect()
+                cursor = conn.cursor()
+                cursor.execute(sql_cmd,[id])
+                conn.commit()
+                cursor.close()
+                conn.close()
 
 
 #Parkes data
 #for day in range(57348,59001):
-for day in range(57348,59001):
+for day in range(57348,59015):
     #Fetch data
     sql_cmd = 'SELECT * FROM files WHERE '
     sql_args = []
@@ -270,7 +269,7 @@ for day in range(57348,59001):
                 print('Success')
                 index = indices.index(index)
                 num = indices.index(min(len(targets)-1,indices[index]+6))-index
-                url = str(num) +'--' + data[index]['url'].split("/")[-1]
+                url = id
                 skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
                 id = entry['id']
@@ -284,7 +283,7 @@ for day in range(57348,59001):
             elif len(targetSet)>=4 and isPartialCadence(0,targetSet):
                 index = indices.index(index)
                 num = indices.index(min(len(targets)-1,indices[index]+4))-index
-                url = str(num) +'--' + data[index]['url'].split("/")[-1]
+                url = id
                 skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
                 id = entry['id']
