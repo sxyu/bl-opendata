@@ -35,7 +35,7 @@ grades_fil = {"fine":"0000","time":"0001","mid":"0002"}
 
 simbad_cache = {}
 def _query_simbad(target):
-    """ query SIMBAD database for synonyms for 'target' """
+    """ query SIMBAD database for synonyms for 'target'  """
     global simbad_cache
     target = target.strip();
     if target not in simbad_cache.keys():
