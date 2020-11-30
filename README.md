@@ -31,8 +31,14 @@
         - 'result': either success or error
         - 'data': list of dictionaries, each with keys: 'target','target', 'telescope', 'utc', 'mjd', 'ra',
                                           'decl', 'center_freq', 'file_type', 'size', 'md5sum', 'url'
+    - api/get-diagnostic-sources/<string:diagnosticType>/<string:id>
+      - Input: diagnosticType should either be Pulsar or Calibrator, id should be the id number of an observation
+      - Return Json:
+        - 'result': either success or error
+        - 'names': A list of the calibrators or pulsars (depending what was searched for) that were targeted within 12 hours of this search id
+        - 'urls': Corresponding download url's to the name list above.
       
-  - Querry Files method details:
+  - Query Files method details:
     - Argument List: target (required), telescopes (comma-sep), file-types (comma-sep), pos-ra , pos-dec, pos-rad, time-start (mjd), time-end (mjd), freq-start, freq-end, limit, cadence (boolean), grades (space-sep)
       - target: The api will return all things containing the target string within the name, so if you set target to "" all targets will be returned, and if you set it to "HIP" only HIP targets will remain.
       - Filtering: telescopes, file-types and grades are all enum's that are used to filter the data (grades only filters Hdf5 and filterbank data), the apropriate entry options can be gotten using the list-"" api calls above. 
