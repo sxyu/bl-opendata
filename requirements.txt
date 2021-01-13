@@ -18,7 +18,7 @@ h5py==2.9.0
 html5lib==1.0.1
 idna==2.8
 itsdangerous==1.1.0
-Jinja2==2.10
+Jinja2==2.10.1
 keyring==18.0.0
 kiwisolver==1.0.1
 lxml==4.3.2
