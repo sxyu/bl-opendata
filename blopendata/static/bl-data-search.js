@@ -2,21 +2,21 @@ $(document).ready(function(){
         /*-- Celestial initialization --*/
         /* D3-Celestial sky map, copyright 2015 Olaf Frohn https://github.com/ofrohn */
         /* create a default Celestial config object, with parent object ID 'containerName' */
-        var getCelestialConfig = function(containerName = "celestial-map") { 
+        var getCelestialConfig = function(containerName = "celestial-map") {
           return {
-              width: 0, 
-              projection: "airy", 
+              width: 0,
+              projection: "airy",
               transform: "equatorial",
-              center: null,   
+              center: null,
               orientationfixed: true,
               background: { fill: "#000000", stroke: "#000000", opacity: 1 },
               adaptable: true,
               interactive: true,
-              controls: false, 
+              controls: false,
               container: containerName,   // ID of parent element
               datapath: "data/",  // Path/URL to data files
               stars: {
-                show: true, limit: 5, colors: true, 
+                show: true, limit: 5, colors: true,
                 style: { fill: "#ffffff", opacity: 1 },
                 names: false,
                 proper: true,
@@ -53,7 +53,7 @@ $(document).ready(function(){
                   bn: {shape: "square", fill: "#999999", stroke: "#cccccc", width: 1},    // Generic bright nebula
                   sfr:{shape: "square", fill: "#999999", stroke: "#cccccc", width: 1},    // Star forming region
                   rn: {shape: "square", fill: "#999999"},                                 // Reflection nebula
-                  pn: {shape: "diamond", fill: "#999999"},                                // Planetary nebula 
+                  pn: {shape: "diamond", fill: "#999999"},                                // Planetary nebula
                   snr:{shape: "diamond", fill: "#ff0000", stroke: "#0000ff", width: 4},   // Supernova remnant
                   dn: {shape: "square", fill: "#999999", stroke: "#cccccc", width: 2},    // Dark nebula grey
                   pos:{shape: "marker", fill: "#cccccc", stroke: "#cccccc", width: 1.5}   // Generic marker
@@ -72,8 +72,8 @@ $(document).ready(function(){
                 style: { fill: "#ffffff", opacity: "0.15" }
               },
               lines: {
-                graticule: { show: true, stroke: "#cccccc", width: 0.6, opacity: 0.8, 
-                  lon: {pos: ["center"], fill: "#eee", font: "10px Helvetica, Arial, sans-serif"}, 
+                graticule: { show: true, stroke: "#cccccc", width: 0.6, opacity: 0.8,
+                  lon: {pos: ["center"], fill: "#eee", font: "10px Helvetica, Arial, sans-serif"},
                       lat: {pos: ["center"], fill: "#eee", font: "10px Helvetica, Arial, sans-serif"}},
                 equatorial: { show: true, stroke: "#aaaaaa", width: 1.3, opacity: 0.7 },
                 ecliptic: { show: false, stroke: "#66cc66", width: 1.3, opacity: 0.7 },
@@ -82,16 +82,16 @@ $(document).ready(function(){
                 } // lines
           }; // return object
         }; // getCelestialConfig
-        
+
         var celestialNeedUpdate = false;
         var celestialCenterPos = [0, 0];
-        
+
         /* update celestial map with parent container ID 'containerName' */
         var updateCelestial = function(containerName = "celestial-map") {
             Celestial.display(getCelestialConfig(containerName));
             celestialNeedUpdate = false;
         }
-        
+
         /* add objects objs with attributes 'ra', 'decl', 'target' to the celestial map */
         var addObjsToCelestial = function(objs, containerName = "celestial-map") {
             // filter out close objects
@@ -104,7 +104,7 @@ $(document).ready(function(){
                     if (Math.abs(objsFiltered[j][0] - objs[i]['ra']) > EPS) continue;
                     if (Math.abs(objsFiltered[j][1] - objs[i]['decl']) > EPS) continue;
                     if (objsFiltered[j][2] !== objs[i]['target']) continue;
-                    
+
                     firstIndex = j;
                     break;
                 }
@@ -133,32 +133,32 @@ $(document).ready(function(){
                        "type":"Point",
                        "coordinates": [ra, dec]
                      }
-                    }  
+                    }
                 ); // feats.push
             } // for
-            
+
             Celestial.clear();
             if (objsFiltered.length > 0) {
                 var jsonSN = {
                   "type":"FeatureCollection",
                   "features": feats
                 };
-                  
+
                 // initialize styles
-                var pointStyle = { 
-                      stroke: "#f0f", 
+                var pointStyle = {
+                      stroke: "#f0f",
                       width: 2,
                       fill: "rgba(255, 204, 255, 0.4)"
                 };
-                var textStyle = { 
-                    fill:"#f1f", 
-                    font: '9px Roboto, "Helvetica Neue", Arial, sans-serif', 
-                    align: "left", 
-                    baseline: "bottom" 
+                var textStyle = {
+                    fill:"#f1f",
+                    font: '9px Roboto, "Helvetica Neue", Arial, sans-serif',
+                    align: "left",
+                    baseline: "bottom"
                 };
-              
+
                 // add to Celestial
-                Celestial.add({type:"line", 
+                Celestial.add({type:"line",
                     callback: function(error, json) {
                       if (error) return console.warn(error);
                       // Load the geoJSON file and transform to correct coordinate system, if necessary
@@ -168,7 +168,7 @@ $(document).ready(function(){
                       Celestial.container.selectAll(".snrs")
                         .data(dsn.features)
                         .enter().append("path")
-                        .attr("class", "snr"); 
+                        .attr("class", "snr");
                       // Trigger redraw to display changes
                       Celestial.redraw();
                     }, //callback
@@ -179,9 +179,9 @@ $(document).ready(function(){
                         if (Celestial.clip(d.geometry.coordinates)) {
                           // get point coordinates
                           var pt = Celestial.mapProjection(d.geometry.coordinates);
-                          // object radius in pixel, could be varable depending on e.g. dimension or magnitude 
+                          // object radius in pixel, could be varable depending on e.g. dimension or magnitude
                           var r = Math.pow(0.25 * d.properties.dim, 0.5); // replace 20 with dimmest magnitude in the data
-                       
+
                           // draw on canvas
                           //  Set object styles fill color, line color & width etc.
                           Celestial.setStyle(pointStyle);
@@ -191,17 +191,17 @@ $(document).ready(function(){
                           Celestial.context.arc(pt[0], pt[1], r, 0, 2 * Math.PI);
                           // Finish the drawing path
                           Celestial.context.closePath();
-                          // Draw a line along the path with the prevoiusly set stroke color and line width      
+                          // Draw a line along the path with the prevoiusly set stroke color and line width
                           Celestial.context.stroke();
                           // Fill the object path with the prevoiusly set fill color
-                          Celestial.context.fill();     
+                          Celestial.context.fill();
 
-                          // Set text styles       
+                          // Set text styles
                           Celestial.setTextStyle(textStyle);
                           // and draw text on canvas
                           Celestial.context.fillText(d.properties.name, pt[0] + r - 1, pt[1] - r + 1);
-                        }      
-                      }); 
+                        }
+                      });
                     } //redraw
                 }); //add
                 if ($('#' + containerName).parent().parent().parent().css('display') != 'none') {
@@ -216,9 +216,9 @@ $(document).ready(function(){
                 celestialNeedUpdate = true;
             }
         } // addObjsToCelestial
-        
+
         updateCelestial();
-    
+
         /* convert 'bytes' to human readable file size. If 'si' is set, uses MB, GB, etc. instead of MiB, etc. */
         function _humanFileSize(bytes, si) {
             var thresh = si ? 1000 : 1024;
@@ -235,38 +235,59 @@ $(document).ready(function(){
             } while(Math.abs(bytes) >= thresh && u < units.length - 1);
             return bytes.toFixed(1)+' '+units[u];
         }
-    
+
         /*-- API interface --*/
         var results = $('#results');
         var queryBox = $('#query');
         var inputError = $('#input-error');
-        
+
         // floating-point printing precision
         const PRECISION = 1e4;
-        
+        jQuery.fn.dataTableExt.oSort['file-size-pre']  = function(s) {
+            // console.log(s);
+            var unit = s.substring(s.length-3);
+            // console.log(unit);
+            var factor = 1;
+            switch (unit) {
+                case "GiB":
+                    factor = 1073741824;
+                    break;
+                case "KiB":
+                    factor = 1024;
+                    break;
+                case "MiB":
+                    factor = 1048576
+            }
+
+            return parseFloat(s.substring(0,s.length-3))*factor;
+        };
         var dataTable = $('#results-table').DataTable({
+            "aoColumnDefs": [
+                    { "sType": "file-size", "aTargets": [8] },    //指定列号使用自定义排序
+                ],
             pageLength: 25,
         });
         $('#results-table > thead > tr> th:nth-child(1)').css({ 'min-width': '74px' });
         $('#results-table > thead > tr> th:nth-child(4)').css({ 'min-width': '100px' });
-        
+
         // stores all targets and synonyms
         var targets = {};
-        
+
         var showError = function(msg) {
             inputError.text(msg);
             inputError.show();
         }
-        
+
         /* send an API call to update the query table, retrieving up to 'lim' entries
          * (0 = retrieve all) */
         var _updateQuery = function(lim = 0) {
+            // console.log("DRX");
             // construct API call
             var data = {};
             // query string (target)
             var queryStr = queryBox[0].value;
             data['target'] = queryStr;
-            
+
             // telescopes
             var telGBT = $('#telescope-gbt')[0].checked;
             var telParkes = $('#telescope-parkes')[0].checked;
@@ -282,7 +303,7 @@ $(document).ready(function(){
                 }
                 data['telescopes'] = telStr.substr(0, telStr.length-1);
             }
-            
+
             // file types
             var ftypeFil = $('#ftype-fil')[0].checked;
             var ftypeHDF5 = $('#ftype-hdf5')[0].checked;
@@ -300,7 +321,7 @@ $(document).ready(function(){
                 }
                 data['file-types'] = ftypeStr.substr(0, ftypeStr.length-1);
             }
-            
+
             // position
             var posEnabled = $('#pos-enable')[0].checked;
             if (posEnabled) {
@@ -311,7 +332,7 @@ $(document).ready(function(){
                 data['pos-dec'] = parseFloat(posDec);
                 data['pos-rad'] = parseFloat(posRad);
             }
-            
+
             // time
             var timeStart = parseFloat($('#time-start').val());
             var timeEnd = parseFloat($('#time-end').val());
@@ -323,7 +344,7 @@ $(document).ready(function(){
                 data['time-start'] = timeStart;
                 data['time-end'] = timeEnd;
             }
-            
+
             // freq
             var freqStart = parseFloat($('#freq-start').val());
             var freqEnd = parseFloat($('#freq-end').val());
@@ -335,11 +356,11 @@ $(document).ready(function(){
                 data['freq-start'] = freqStart;
                 data['freq-end'] = freqEnd;
             }
-            
+
             if (lim > 0) {
                 data['limit'] = lim;
             }
-            
+
             // call API to get new data
             $.ajax({
               dataType: "json",
@@ -366,13 +387,13 @@ $(document).ready(function(){
                         Math.round(entries[i]['decl'] * PRECISION) / PRECISION,
                         Math.round(entries[i]['center_freq'] * PRECISION) / PRECISION,
                         ftype,
-                        _humanFileSize(entries[i]['size'], false),
+                        _humanFileSize(entries[i]['size'],false),
                         '<a class="download-link" href="'+entries[i]['url']+'" title="MD5Sum: ' + entries[i]['md5sum'] + '"><i class="fas fa-cloud-download-alt"></i></a>',
                     ]);
                   }
                   addObjsToCelestial(entries);
                   dataTable.draw();
-                  
+
                   results.show();
                   inputError.hide();
               },
@@ -380,9 +401,9 @@ $(document).ready(function(){
               },
             });
         }
-        
+
         var lastUpdateTime = new Date().getTime();
-        
+
         /* update the query table lazily, 'absorbing' calls that are close in time to reduce number of API calls */
         var updateQuery = function() {
             var now = new Date().getTime();
@@ -396,7 +417,7 @@ $(document).ready(function(){
                 }
             }, 500);
         }
-        
+
         // set up autocomplete
         $.get(BreakthroughAPI.targets_api_url, function(targetsList) {
             // fetch list of targets first
@@ -408,7 +429,7 @@ $(document).ready(function(){
                 }
             }
             targets = targetsList;
-            
+
             queryBox.autocomplete({
                 onSelect: function (suggestion) {
                     queryBox[0].value = suggestion['data']
@@ -439,7 +460,7 @@ $(document).ready(function(){
                             if (suggest.length >= 100) break;
                         }
                     }
-                    
+
                     // display the filtered results
                     response({ suggestions: suggest });
                 },
@@ -458,14 +479,14 @@ $(document).ready(function(){
                 }
             });
         });
-        
+
         $("input[type='number']").inputSpinner({
             buttonsWidth: "1.5rem",
             groupClass: "input-group-sm time-group",
             buttonsClass: "btn-faint-border",
         });
-        
-        
+
+
         // if any option is modified, reload
         $('#search-options').find("input[type='checkbox']").change(function() {
             updateQuery();
@@ -473,11 +494,11 @@ $(document).ready(function(){
         $('#search-options').find("input[type='number']").on("change", function (event) {
             updateQuery();
         })
-        
+
         queryBox.on('keyup', function(event) {
             updateQuery();
-        });   
-    
+        });
+
         celestialNeedUpdate = true;
         $("#celestial-card .card-header").click(function() {
             if (!$('#celestial-panel').hasClass('show')) {
@@ -489,7 +510,7 @@ $(document).ready(function(){
                 }
             }
         });
-        
+
         // handle table row click (show more info about data file)
         $('#results-table tbody').on('click', 'tr', function () {
             var flbox = $('#fl-box-inner');
@@ -519,13 +540,13 @@ $(document).ready(function(){
             var md5 = tds[9].innerHTML;
             md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
             md5 = md5.substr(0, md5.indexOf("\""));
-            
+
             flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
             flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
             flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
             flhtml += "</tbody></table>";
             flbox.html(flhtml);
-            
+
             var flboxOuter = $('#fl-box');
             $.featherlight(flboxOuter);
           } ); // click
