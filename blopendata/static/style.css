@@ -16,6 +16,10 @@ section {
   z-index:1000;
 }
 
+#primaryTargetBox {
+  margin-left: 20px;
+}
+
 #fl-box {
   display: none;
 }

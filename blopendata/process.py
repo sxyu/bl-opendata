@@ -62,12 +62,14 @@ mysql.init_app(app)
 from datetime import timedelta
 def getTargets(data):
     if len(data)==0:
-        return []
+        return ([],[],[])
     TOLERANCE = 10
     oldTime = data[0]['utc']
+    oldTarget = data[0]['target']
     #oldTime = int(time.split(":")[1]) + int(time.split(":")[2])/60.
     indices = [0]
     targets = [data[0]['target']]
+    times = [data[0]['utc']]
     index=0
     for i in range(1,len(data)):
         entry = data[i]
@@ -75,12 +77,15 @@ def getTargets(data):
         # min = int(time.split(":")[1])
         # sec = int(time.split(":")[2])
         newTime = entry['utc']
-        if newTime >= oldTime + timedelta(seconds=TOLERANCE):
-            targets.append(entry['target'])
+        newTarget = entry['target']
+        if newTime >= oldTime + timedelta(seconds=TOLERANCE) or newTarget != oldTarget:
+            targets.append(newTarget)
+            times.append(newTime)
             oldTime = newTime
+            oldTarget = newTarget
             index+=1
         indices.append(index)
-    return targets,indices
+    return targets,indices,times
 
 
 def isCadence(index,targets):
@@ -88,6 +93,57 @@ def isCadence(index,targets):
 
 def isPartialCadence(index,targets):
     return targets[index]==targets[index+2]  and targets[index]!= targets[index+1] and targets[index] != targets[index+3]
+
+def getCadenceSet(ind,index,targets,times):
+    TOLERANCE = 30*60
+    ind = index[ind]
+    toReturn = [targets[ind]]
+    time = times[ind]
+    for i in range(ind+1,min(ind+6,len(targets))):
+        if times[i] > time + timedelta(seconds=TOLERANCE):
+            break
+        toReturn.append(targets[i])
+        time = times[i]
+    return toReturn
+
+
+
+A19 = Time('2019-02-01T00:00:00',format='isot')
+B19 = Time('2019-08-01T00:00:00',format='isot')
+A20 = Time('2020-02-01T00:00:00',format='isot')
+B20 = Time('2020-08-01T00:00:00',format='isot')
+A21 = Time('2021-02-01T00:00:00',format='isot')
+def getTemp(mjd):
+    t = Time(float(mjd),format='mjd')
+    #year = int(str(t.utc.iso).split("-")[0])
+    tag = "21A"
+    if t<A19:
+        return "None"
+    elif t<B19:
+        tag = "19A"
+    elif t<A20:
+        tag = "19B"
+    elif t<B20:
+        tag = "20A"
+    elif t<A21:
+        tag = "20B"
+    h = 'localhost'
+    p = 6379
+    r = redis.Redis(host=h,port=p,db=0)
+    keys = r.hkeys("OREO_TSYS_"+tag)
+    times = [toTime(k) for k in keys]
+    diff = [abs(time - t) for time in times]
+    i = np.argmin(diff)
+    if diff[i]>.5:
+        return "None"
+    key = keys[i]
+    result = str(r.hget("OREO_TSYS_"+tag,key))
+    result = "{" + " ,".join(result.split(",")[1:])
+    result = eval(result)
+    return result['forecast'],result['measured'][0],result['measured'][1]
+def toTime(dateString):
+    newStr = dateString[:4]+"-"+dateString[4:6]+"-"+dateString[6:11]+":"+dateString[11:13]+":"+dateString[13:15]
+    return Time(newStr, format = 'isot',scale='utc')
 
 #
 sql_cmd = "Update files Set cadence = %s Where project != %s and (project != %s or not target_name LIKE %s);"
@@ -104,7 +160,7 @@ conn.close()
 
 #GBT work
 #for day in range(57348,59015):
-for day in range(57348,57349):
+for day in range(57348,59015):
     #Fetch data
     sql_cmd = 'SELECT * FROM files WHERE '
     sql_args = []
@@ -121,11 +177,14 @@ for day in range(57348,57349):
     sql_cmd += "project = %s"
     sql_args.append("GBT")
     sql_cmd += " ORDER BY utc_observed"
+
+    print(sql_cmd % (sql_args[0]))
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute(sql_cmd, sql_args)
     table = cursor.fetchall()
     conn.close()
+
 
 
     data = []
@@ -143,36 +202,40 @@ for day in range(57348,57349):
     #Find cadences
     skip =0
     url = 'Unknown'
+    targets, indices,times = getTargets(data)
     for i in range(len(data)):
         print(i)
         id =data[i]['id']
+        if skip<0:
+            0/0
         if skip:
             skip-=1
             sql_cmd = "Update files Set cadence = %s Where id = %s;"
-            print(id,url)
+
             #orig_print(id)
             conn = mysql.connect()
             cursor = conn.cursor()
+            print(sql_cmd % (url,id))
             cursor.execute(sql_cmd,[url,id])
             conn.commit()
             cursor.close()
             conn.close()
         else:
-            targets, indices = getTargets(data)
             index = indices[i]
-            stop = min(index+6,len(data)-1)
-            targetSet = targets[index:stop]
+            # stop = min(index+6,len(target))
+            targetSet = getCadenceSet(i,indices,targets,times)
             print(targetSet)
+            print(times[index:index+6])
             if len(targetSet)==6 and isCadence(0,targetSet):
                 index = indices.index(index)
                 num = indices.index(min(len(targets)-1,indices[index]+6))-index
                 url = id
                 skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                id = entry['id']
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()
+                print(sql_cmd % (url,id))
                 cursor.execute(sql_cmd,[url,id])
                 conn.commit()
                 cursor.close()
@@ -183,10 +246,10 @@ for day in range(57348,57349):
                 url = id
                 skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                id = entry['id']
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()
+                print(sql_cmd % (url,id))
                 cursor.execute(sql_cmd,[url,id])
                 conn.commit()
                 cursor.close()
@@ -196,6 +259,7 @@ for day in range(57348,57349):
                 #print(sql_cmd,[id])
                 conn = mysql.connect()
                 cursor = conn.cursor()
+                print(sql_cmd %(id))
                 cursor.execute(sql_cmd,[id])
                 conn.commit()
                 cursor.close()
@@ -245,6 +309,7 @@ for day in range(57348,59015):
     #Find cadences
     skip =0
     url = 'Unknown'
+    targets, indices,times = getTargets(data)
     for i in range(len(data)):
         #print(i)
         id =data[i]['id']
@@ -260,7 +325,6 @@ for day in range(57348,59015):
             cursor.close()
             conn.close()
         else:
-            targets, indices = getTargets(data)
             index = indices[i]
             stop = min(index+6,len(data)-1)
             targetSet = targets[index:stop]
@@ -272,7 +336,6 @@ for day in range(57348,59015):
                 url = id
                 skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                id = entry['id']
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()
@@ -286,7 +349,6 @@ for day in range(57348,59015):
                 url = id
                 skip = num-1
                 sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                id = entry['id']
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()

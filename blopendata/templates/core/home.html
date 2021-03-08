@@ -18,6 +18,10 @@
         <div id="query-form">
             <h4>Search</h4>
             <input type="text" class="form-control basic-auto-complete" id="query" placeholder="Type to search...">
+            <div class="custom-control custom-checkbox">
+             <input type="checkbox" disabled = true class="custom-control-input" id="targetCentered"></input>
+              <label class="custom-control-label" for="targetCentered" >Search Around This Target</label>
+            </div>
             <span id="input-error"></span>
             <!-- search options -->
             <div id="search-options-card" class="card">
@@ -82,8 +86,13 @@
                                 <div class="col-sm-3 col-narrow">
                                     <h4><i class="fas fa-file-alt"></i> Cadence</h4>
                                     <div class="custom-control custom-checkbox">
-                                     <input type="checkbox" class="custom-control-input" id="cadence-on" unchecked></input>
-                                      <label class="custom-control-label" for="cadence-on">on</label>
+                                     <input type="checkbox"  class="custom-control-input" id="cadence-on" unchecked></input>
+                                      <label class="custom-control-label" for="cadence-on">On</label>
+                                    </div>
+
+                                    <div class="custom-control custom-checkbox"id ="primaryTargetBox">
+                                     <input type="checkbox" disabled="disabled"  class="custom-control-input" id="primaryTarget" unchecked></input>
+                                      <label class="custom-control-label" for="primaryTarget">&nbsp;Primary Target</label>
                                     </div>
                                 </div>
                                 <!-- This section above is in testing phase-->
@@ -149,7 +158,7 @@
             <table class="table table-striped table-sm" id="results-table">
                 <thead>
                     <tr>
-                        <th title="Time in Universal Time Coordinated format (essentially Greenwich Mean Time) at the start of the observation">UTC</th>
+                        <th title="Time in Universal Time Coordinated format (essentially Greenwich Mean Time) at the start of the observation">UTC (DD/MM/YYYY)</th>
                         <th title="Modified Julian Date (days since midnight, November 17, 1858) at the start of the observation">MJD</th>
                         <th title="Telescope where the data were taken (Green Bank Telescope, Automated Planet Finder, or Parkes)">Telescope</th>
                         <th title="Name of the object observed">Target</th>

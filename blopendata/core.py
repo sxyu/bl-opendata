@@ -141,7 +141,7 @@ def api_query():
     query for a list of files with associated info
     possible arguments: target, telescopes (comma-sep), file-types (comma-sep),
                         pos-ra, pos-dec, pos-rad, time-start, time-end, freq-start, freq-end, limit
-                        cadence, grades
+                        cadence, grades, primaryTarget
     returns: dictionary d with d["result"] in {"success", "error"}
                                d["message"] set to message on result "error"
                                d["data"] set to query result set on result "success"
@@ -184,41 +184,68 @@ def api_query():
         sql_args.extend(ftypes_str)
     print("TEST")
     cen_coord, rad = None, -1.
-    if 'pos-ra' in request.args and 'pos-dec' in request.args and 'pos-rad' in request.args:
+    if 'pos-rad' in request.args:
         #TODO: Fix issue with telescopes and examine results: Complete
         # Make this work. (Can use small angle aproximation but be careful about going over the top not being accounted for): Complete
-        #Spy on simbad and steal their ideas
-        #Talk to Danny Price, implement on parkes
-        #Finding calibrator operations, 3C295 ect. pulsar , matching calibrator to
+        #Spy on simbad and steal their ideas: LOW PRIORITY
+        #Talk to Danny Price, implement on parkes: Half Complete
+        #Finding calibrator operations, 3C295 ect. pulsar , matching calibrator to: Complete
         #Speed up database with indecies: Complete
         #Improve Quarying limits: Complete
         #Link the api documentation: Complete
-        #Write an update.py
-        #One database to rule them all or not
-        #Data quality, compute metadata, search on metadata
-        ra = float(request.args.get('pos-ra'))
-        decl = float(request.args.get('pos-dec'))
+        #Write an update.py: On hold
+        #Data quality, compute metadata, search on metadata, find calibrators to go with data, focus:GBT: and Parkes have calibrators (something for ABF)
+            #3C, PSR (within 12 hours): Complete
+        # Organize Downloads, Update Simbad in similar manner: Complete
+        #FIGURE OUT Cadence Error: http://35.236.84.6:5001/api/get-cadence/--86953 and http://35.236.84.6:5001/api/get-cadence/--77725 (Talk about tollerance): Complete
+        #Longer cadences are a thing to consider.
+        #Fix precision RA (too high): Complete
+        #Comma placement" Complete
+        # Google cloud (store in buckets), archival (GCP 3 or 4 classes)
+        # Redis, dictionary
+        #Git hub issues (what is it) (look at blimpy)
+        #Documentation
+        ra = None
+        decl = None
         rad = float(request.args.get('pos-rad'))
-        # try to limit the range of queried ra, decl based on the required position/radius
-        decl_min, decl_max = max(decl - rad, -90.), min(decl + rad, 90.) #made an adjustmant here
-        from math import cos,pi
-        ra_per_dec = 1/abs(cos(decl*pi/180))
-        ra_min, ra_max = ra - ra_per_dec * rad, ra + ra_per_dec * rad
-        sql_cmd += " AND decl BETWEEN %s AND %s"
 
-        sql_args.extend([decl_min, decl_max])
-        if ra_max - ra_min >= 360 or decl-rad <-90 or decl+rad>90:
-            pass # can't filter
-        elif ra_max > 360. or ra_min < 0:
-            ra_min = (ra_min + 360.) % 360.
-            ra_max = (ra_max + 360.) % 360.
-            # if ra_max < ra_min: #made an adjustment here
-            sql_cmd += " AND ra NOT BETWEEN %s AND %s"
-            sql_args.extend([ra_max, ra_min])
+        if 'pos-ra' in request.args and 'pos-dec' in request.args:
+            ra = float(request.args.get('pos-ra'))
+            decl = float(request.args.get('pos-dec'))
         else:
-            sql_cmd += " AND ra BETWEEN %s AND %s"
-            sql_args.extend([ra_min, ra_max])
-        cen_coord = SkyCoord(ra = ra * u.deg, dec = decl * u.deg)
+            sql_args[0]="%"
+            sub_cmd = "SELECT * from files WHERE target_name = %s Limit 1"
+            conn = mysql.connect()
+            cursor = conn.cursor()
+            cursor.execute(sub_cmd,[request.args.get('target')])
+            table = cursor.fetchall()
+            conn.close()
+            if len(table)!=0:
+                ra = table[0][4]
+                decl = table[0][5]
+
+
+        # try to limit the range of queried ra, decl based on the required position/radius
+        if ra!=None and decl!=None:
+            decl_min, decl_max = max(decl - rad, -90.), min(decl + rad, 90.) #made an adjustmant here
+            from math import cos,pi
+            ra_per_dec = 1/abs(cos(decl*pi/180))
+            ra_min, ra_max = ra - ra_per_dec * rad, ra + ra_per_dec * rad
+            sql_cmd += " AND decl BETWEEN %s AND %s"
+
+            sql_args.extend([decl_min, decl_max])
+            if ra_max - ra_min >= 360 or decl-rad <-90 or decl+rad>90:
+                pass # can't filter
+            elif ra_max > 360. or ra_min < 0:
+                ra_min = (ra_min + 360.) % 360.
+                ra_max = (ra_max + 360.) % 360.
+                # if ra_max < ra_min: #made an adjustment here
+                sql_cmd += " AND ra NOT BETWEEN %s AND %s"
+                sql_args.extend([ra_max, ra_min])
+            else:
+                sql_cmd += " AND ra BETWEEN %s AND %s"
+                sql_args.extend([ra_min, ra_max])
+            cen_coord = SkyCoord(ra = ra * u.deg, dec = decl * u.deg)
         #orig_print(sql_cmd)
     if 'time-start' in request.args:
         t_start = Time(float(request.args.get('time-start')), format='mjd')
@@ -242,7 +269,7 @@ def api_query():
 
     print("test")
     if 'grades' in request.args:
-        grade = request.args.get('grades').split(' ')
+        grade = request.args.get('grades').split(',')
         for g in grade:
             if g not in grades:
                 return jsonify({'result':'failure','message':'Invalid grade type must be one of "fine","mid","time"'})
@@ -255,10 +282,12 @@ def api_query():
         sql_args.append('filterbank')
         sql_args.extend([grades_fil[g] for g in grade])
 
-
+    primaryTarget = False
     if 'cadence' in request.args:
         sql_cmd += " AND cadence != %s AND cadence is not Null"
         sql_args.append("Unknown")
+        if 'primaryTarget' in request.args:
+            primaryTarget=True
 
     if 'limit' in request.args:
         lim = int(request.args.get('limit'))
@@ -326,6 +355,8 @@ def api_query():
     if 'cadence' in request.args:
         if 'limit' in request.args:
             lim = int(request.args.get('limit'))
+        else:
+            lim = 10000
         if request.args.get('cadence')=='True':
             new_data  = []
             cadences = set()
@@ -333,25 +364,31 @@ def api_query():
                 ##print(entry['url'])
                 cadence_url = entry['cadence_url']
                 if cadence_url not in cadences:
-                    cadences.add(cadence_url)
-                    #orig_print(cadence_url)
-                    cadence_url = openDataAPI + "get-cadence/--"+cadence_url
-                    split_url = cadence_url.split('-')
-                    #orig_print(split_url)
-                    if 'telescopes' in request.args:
-                        split_url[2] = split_url[2]+'telescopes:' + request.args.get('telescope') + ";"
-                    if 'file-types' in request.args:
-                        split_url[2] = split_url[2]+'fileTypes:' + request.args.get('file-types') + ";"
-                    if 'grades' in request.args:
-                        split_url[2] = split_url[2] +'grades:' + request.args.get('grades')
-                    cadence_url = "-".join(split_url)
-                    entry['cadence_url']=cadence_url
-                    #if cadence_url == 'Unknown' or cadence_url not in cadences:
-                    new_data.append(entry)
-                    if len(new_data)>= lim:
-                        break
-
+                    print(cadence_url,entry['id'])
+                    if not primaryTarget or str(cadence_url) == str(entry['id']):
+                        cadences.add(cadence_url)
+                        #orig_print(cadence_url)
+                        cadence_url = openDataAPI + "get-cadence/--"+cadence_url
+                        split_url = cadence_url.split('-')
+                        #orig_print(split_url)
+                        if 'telescopes' in request.args:
+                            split_url[2] = split_url[2]+'telescopes:' + request.args.get('telescopes') + ";"
+                        if 'file-types' in request.args:
+                            split_url[2] = split_url[2]+'fileTypes:' + request.args.get('file-types') + ";"
+                        if 'grades' in request.args:
+                            split_url[2] = split_url[2] +'grades:' + request.args.get('grades')
+                        cadence_url = "-".join(split_url)
+                        entry['cadence_url']=cadence_url
+                        #if cadence_url == 'Unknown' or cadence_url not in cadences:
+                        new_data.append(entry)
+                        if len(new_data)>= lim:
+                            break
             return jsonify({'result': 'success', 'data': new_data})
+    else:
+        for entry in data:
+            del entry['cadence_url']
+
+
     #[entry.pop('id') for entry in data] #removing id from final json
     #print("Query ended")
     return jsonify({'result': 'success', 'data': data})
@@ -644,19 +681,60 @@ def get_cadence(cadence_url):
         allowed = True
         fileType =entry['file_type'].lower()
         if 'telescopes' in filterDict.keys():
-            if entry['telescope'] not in filterDict['telescope'].split(','):
+            if entry['telescope'] not in filterDict['telescopes'].split(','):
                 allowed=False
-        if 'fileTypes' in filterDict.keys():
+        if allowed and 'fileTypes' in filterDict.keys():
             if fileType not in filterDict['fileTypes'].split(','):
                 allowed = False
-        if 'grades' in filterDict.keys():
+        if allowed and 'grades' in filterDict.keys():
             if fileType == 'hdf5'or fileType == 'filterbank':
                 grade= entry['url'].split('.')[-2].split('_')[-1]
                 if fileType == 'filterbank':
-                    grade = fil_grades(grade)
-                if grade not in filterDict['grades'].split(' '):
+                    grade = fil_grades[grade]
+                if grade not in filterDict['grades'].split(','):
                     allowed = False
         if allowed:
             newCadence.append(entry)
 
     return jsonify({'result':'success','data':newCadence})
+
+
+@bp.route('/api/get-diagnostic-sources/<string:diagnosticType>/<string:id>', methods=(['GET']))
+def get_diagnostic_sources(diagnosticType,id):
+    if diagnosticType != 'Pulsar' and diagnosticType !='Calibrator':
+        return jsonify({'result':'error','message':'diagnosticType must be Pulsar or Calibrator'})
+    id = int(id)
+    sql_cmd = 'SELECT utc_observed,type FROM files where id = %s'
+    sql_args = [id]
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd, sql_args)
+    table = cursor.fetchall()
+    conn.close()
+    if(len(table)==0):
+        return jsonify({'result':'error','message':'invalid id'})
+    time = float(Time(str(table[0][0]),format='iso').mjd)
+    oType = table[0][1]
+    if oType == diagnosticType:
+        return jsonify({'result':'error','message':'{} is already of type {}'.format(id,oType)})
+    st = Time(time-.5,format = 'mjd').utc.iso
+    ft = Time(time+.5,format = 'mjd').utc.iso
+    sql_cmd = 'SELECT target_name, url FROM files where  utc_observed <= %s AND utc_observed >= %s AND type = %s'
+    sql_args = [ft,st,diagnosticType]
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd, sql_args)
+    table = cursor.fetchall()
+    conn.close()
+    names = [entry[0] for entry in table]
+    urls = [entry[1] for entry in table]
+    return jsonify({'result': 'success','names':names,'urls':urls})
+
+def getRedisData(entry):
+    return NotDefined
+
+def getCalibratorRedisData(entry):
+    return NotDefined
+
+def getPulsarRedisData(entry):
+    return NotDefined

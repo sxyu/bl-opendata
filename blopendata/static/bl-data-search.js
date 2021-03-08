@@ -2,6 +2,8 @@ $(document).ready(function(){
         /*-- Celestial initialization --*/
         /* D3-Celestial sky map, copyright 2015 Olaf Frohn https://github.com/ofrohn */
         /* create a default Celestial config object, with parent object ID 'containerName' */
+        var urlToID = {}
+        var openDataAPI ="http://35.236.84.6:5001/api/"
         var getCelestialConfig = function(containerName = "celestial-map") {
           return {
               width: 0,
@@ -306,9 +308,9 @@ $(document).ready(function(){
             var timeData = $('#data-time')[0].checked;
             if(!(fineData && midData && timeData)){
                 dataStr = "";
-                if (fineData) dataStr += "fine ";
-                if (midData) dataStr += "mid ";
-                if (timeData) dataStr += "time ";
+                if (fineData) dataStr += "fine,";
+                if (midData) dataStr += "mid,";
+                if (timeData) dataStr += "time";
                 if (dataStr.length == 0) {
                     showError("Please select at least one data Type.");
                     return;
@@ -318,17 +320,54 @@ $(document).ready(function(){
             var cadence = $('#cadence-on')[0].checked;
             if(cadence){
                 data['cadence']='True';
+                document.getElementById("primaryTarget").disabled = false;
+            }else{
+              document.getElementById("primaryTarget").disabled = true;
+              document.getElementById("primaryTarget").checked = false;
             }
-
+            var primaryTarget = $('#primaryTarget')[0].checked;
+            if(primaryTarget){
+              data['primaryTarget'] = 'True';
+            }
             // position
             var posEnabled = $('#pos-enable')[0].checked;
-            if (posEnabled) {
+            var targetCentered = $('#targetCentered')[0].checked;
+            if (posEnabled || targetCentered) {
                 var posRA = $('#pos-ra').val();
                 var posDec = $('#pos-decl').val();
                 var posRad = $('#pos-rad').val();
-                data['pos-ra'] = parseFloat(posRA);
-                data['pos-dec'] = parseFloat(posDec);
                 data['pos-rad'] = parseFloat(posRad);
+                if(!targetCentered){
+                  data['pos-ra'] = parseFloat(posRA);
+                  data['pos-dec'] = parseFloat(posDec);
+                }
+            }
+            if(targetCentered){
+              var searchRequest = {};
+              searchRequest['target'] = "!" + data['target']
+              searchRequest['limit']=1
+              $.ajax({
+                dataType: "json",
+                url: BreakthroughAPI.query_api_url,
+                data: searchRequest,
+                success: function(result) {
+                    if (result['result'] != "success") {
+                        showError(result['message']);
+                        return;
+                    }
+                    //WARNING: This code is more ordering dependent than I like, so future changes has a chance to cause an issue with the indexing.
+                    var entries = result['data'];
+                    let ra = entries[0]['ra'];
+                    let decl = entries[0]['decl'];
+                    document.getElementsByClassName("form-control")[1].value = ra;
+                    document.getElementsByClassName("form-control")[2].value = decl;
+                    document.getElementById("pos-ra").value = ra;
+                    document.getElementById("pos-decl").value = decl;
+                    document.getElementById("pos-enable").checked = true;
+                },
+                error: function() {
+                },
+              });
             }
 
             // time
@@ -380,6 +419,7 @@ $(document).ready(function(){
                     if(cadence){
                         urlName = 'cadence_url'
                     }
+                    urlToID[entries[i][urlName]] = entries[i]['id']
                     dataTable.row.add([
                         date.toLocaleDateString('en-GB', dateTimeOptions) + " " + date.toLocaleTimeString('en-GB', dateTimeOptions),
                         Math.round(entries[i]['mjd'] * PRECISION) / PRECISION,
@@ -404,6 +444,7 @@ $(document).ready(function(){
             });
         }
 
+        document.getElementById('targetCentered').onchange=_updateQuery;
         var lastUpdateTime = new Date().getTime();
 
         /* update the query table lazily, 'absorbing' calls that are close in time to reduce number of API calls */
@@ -431,6 +472,7 @@ $(document).ready(function(){
                 }
             }
             targets = targetsList;
+            var targetName = query.value.toLowerCase();
 
             queryBox.autocomplete({
                 onSelect: function (suggestion) {
@@ -450,6 +492,12 @@ $(document).ready(function(){
                         queryStr = queryStr.substr(1);
                     }
                     var matches = autoCompleteTrie.query(queryStr);
+                    if(matches.length >0 && autoCompleteList[matches[0]]['value'].toLowerCase() == queryStr){
+                      document.getElementById("targetCentered").disabled = false;
+                    }else{
+                      document.getElementById("targetCentered").disabled = true;
+                      document.getElementById("targetCentered").checked = false;
+                    }
                     for (var j = 0; j < matches.length; j++) {
                         var i = matches[j];
                         if (autoCompleteList[i]['value'].toLowerCase().indexOf(queryStr) > -1) {
@@ -519,35 +567,298 @@ $(document).ready(function(){
             var flhtml = "";
             var $this = $(this);
             var tds = $this.find('td');
-            flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + tds[3].innerText + "</th></tr></thead><tbody>";
-            if (tds[3].innerText in targets) {
-                flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
-            }
-            flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
-            flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
-            flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
-            flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
-            var ra = parseFloat(tds[4].innerText) / 15.0;
-            var raH = Math.floor(ra);
-            var raM = Math.floor((ra - raH) * 60.);
-            var raS = (ra - raH - raM / 60.) * 3600.;
-            flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS + "</td></tr>";
-            flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
-            flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
-            flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
-            flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
-            var link = tds[9].innerHTML;
-            link = link.substr(link.indexOf("href") + 6);
-            link = link.substr(0, link.indexOf("\""));
-            var md5 = tds[9].innerHTML;
-            md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
-            md5 = md5.substr(0, md5.indexOf("\""));
+            var cadence = $('#cadence-on')[0].checked;
+            if(cadence){
+              flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + "Primary Target: " + tds[3].innerText + "</th></tr></thead><tbody>";
+              if (tds[3].innerText in targets) {
+                  flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
+              }
+              flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
+              flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
+              flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
+              flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
+              var ra = parseFloat(tds[4].innerText) / 15.0;
+              var raH = Math.floor(ra);
+              var raM = Math.floor((ra - raH) * 60.);
+              var raS = (ra - raH - raM / 60.) * 3600.;
+              flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
+              flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
+              flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
+              // flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
+              // flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
+              var link = tds[9].innerHTML;
+              link = link.substr(link.indexOf("href") + 6);
+              link = link.substr(0, link.indexOf("\""));
+              var md5 = tds[9].innerHTML;
+              md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
+              md5 = md5.substr(0, md5.indexOf("\""));
 
-            flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
-            flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-            flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
-            flhtml += "</tbody></table>";
-            flbox.html(flhtml);
+              flhtml += "<tr><td>Cadence:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+
+              //Handle finding information about cadence
+              $.ajax({
+                dataType: "json",
+                type:"GET",
+                url: link,
+                success: function(result) {
+                    if (result['result'] != "success") {
+                        showError(result['message']);
+                        return;
+                    }
+                    // update the datatable
+                    var entries = result['data'];
+                    var fine =[]
+                    var time =[]
+                    var mid =[]
+                    var raw =[]
+                    let targets = new Set()
+                    if(entries.length>0){
+                      // flhtml += "<tr><td>Downloads:</td><td>";
+                      for (var i = 0; i < entries.length; i++) {
+                          //flhtml+="<a href=\"" + entries[i]['url']+ "\">" + entries[i]['target'] + ", </a>";
+                          var entry = entries[i]
+                          targets.add(entry['target'])
+                          if (entry['file_type'] != 'HDF5'){
+                            raw.push(entry)
+                          }
+                          else{
+                            var split = entry['url'].split('.')
+                            split = split[split.length-2].split('_')
+                            var end = split[split.length-1]
+                            if (end == 'fine'){
+                              fine.push(entry)
+                            }
+                            else if (end =='mid'){
+                              mid.push(entry)
+                            }
+                            else{
+                              time.push(entry)
+                            }
+                          }
+                      }
+
+                      if (fine.length>0){
+                        flhtml += "<tr><td>Downloads(Fine):</td><td>";
+                        for(var i=0;i<fine.length;i++){
+                          if(i<fine.length-1){
+                            flhtml+="<a href=\"" + fine[i]['url']+ "\">" + fine[i]['target'] + ", </a>";
+                          }
+                          else{
+                            flhtml+="<a href=\"" + fine[i]['url']+ "\">" + fine[i]['target'] + "</a>";
+                          }
+                        }
+                        flhtml+="</td></tr>";
+                      }
+                      if (mid.length>0){
+                        flhtml += "<tr><td>Downloads(Mid):</td><td>";
+                        for(var i=0;i<mid.length;i++){
+                          if(i<mid.length-1){
+                            flhtml+="<a href=\"" + mid[i]['url']+ "\">" + mid[i]['target'] + ", </a>";
+                          }
+                          else{
+                            flhtml+="<a href=\"" + mid[i]['url']+ "\">" + mid[i]['target'] + "</a>";
+                          }
+                        }
+                        flhtml+="</td></tr>";
+                      }
+                      if (time.length>0){
+                        flhtml += "<tr><td>Downloads(Time):</td><td>";
+                        for(var i=0;i<time.length;i++){
+                          if(i<time.length-1){
+                            flhtml+="<a href=\"" + time[i]['url']+ "\">" + time[i]['target'] + ", </a>";
+                          } else{
+                            flhtml+="<a href=\"" + time[i]['url']+ "\">" + time[i]['target'] + "</a>";
+                          }
+                        }
+                        flhtml+="</td></tr>";
+                      }
+                      if (raw.length>0){
+                        flhtml += "<tr><td>Downloads(Raw):</td><td>";
+                        for(var i=0;i<raw.length;i++){
+                          if(i<raw.length-1){
+                            flhtml+="<a href=\"" + raw[i]['url']+ "\">" + raw[i]['target'] + ", </a>";
+                          } else{
+                            flhtml+="<a href=\"" + raw[i]['url']+ "\">" + raw[i]['target'] + "</a>";
+                          }
+                        }
+                        flhtml+="</td></tr>";
+                      }
+
+                    flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+                    //Handling Simbad Query
+                    flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td>"
+                    for (let target of targets){
+                      flhtml+="<a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + target + "\" target=\"_blank\">" + target + " </a>";
+                    }
+                    flhtml+= "</td></tr>"
+                    } else{
+                      flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+                      flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+                    }
+                },
+                error: function() {
+                  flhtml += "<tr><td>Downloads:</td><td><a href=\"" + link+ "\">" + 'error '+ "</a></td></tr>";
+                  flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+                  flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+                  flhtml += "</tbody></table>";
+                  flbox.html(flhtml);
+                },
+                complete : function () {
+                  let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
+                  $.ajax({
+                    dataType: "json",
+                    type:"GET",
+                    url: diagLink ,
+                    success: function(result) {
+                      if(result['result']=='success'){
+                        let names = result['names']
+                        let urls = result['urls']
+                        if(names.length>0){
+                          flhtml += "<tr><td>Pulsars: </td><td>";
+                          for(let i=0;i<names.length;i++){
+                            if(i<names.length-1){
+                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+                            }
+                            else{
+                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+                            }
+
+                          }
+                          flhtml += "</td></tr>"
+                        }
+                      }
+                    },
+                    complete: function(){
+                      let diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
+                      $.ajax({
+                        dataType: "json",
+                        type:"GET",
+                        url: diagLink ,
+                        success: function(result) {
+                          if(result['result']=='success'){
+                            let names = result['names']
+                            let urls = result['urls']
+                            if(names.length>0){
+                              flhtml += "<tr><td>Calibrators: </td><td>";
+                              if(i<names.length-1){
+                                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+                              }
+                              else{
+                                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+                              }
+                              flhtml += "</td></tr>"
+                            }
+                          }
+                        },
+                        complete: function(){
+                          flhtml += "</tbody></table>";
+                          flbox.html(flhtml);
+                        }
+                      });
+                    }
+                  });
+                }
+          });
+
+              // $.get(link, function(result) {
+              //     // fetch list of targets first
+              //     var entries = result['data']
+              //     for (var i = 0; i < entries.length; i++) {
+              //       flhtml += "<tr><td>Downloads:</td><td><a href=\"" + entries[i]['url']+ "\">" + entires[i]['target'] + "</a></td></tr>";
+              //     }
+              // });
+
+              //flhtml += "<tr><td>Downloads:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+              // flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+              // flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+              // flhtml += "</tbody></table>";
+              // flbox.html(flhtml);
+            }
+            else{
+              flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + tds[3].innerText + "</th></tr></thead><tbody>";
+              if (tds[3].innerText in targets) {
+                  flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
+              }
+              flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
+              flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
+              flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
+              flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
+              var ra = parseFloat(tds[4].innerText) / 15.0;
+              var raH = Math.floor(ra);
+              var raM = Math.floor((ra - raH) * 60.);
+              var raS = (ra - raH - raM / 60.) * 3600.;
+              flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
+              flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
+              flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
+              flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
+              flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
+              var link = tds[9].innerHTML;
+              link = link.substr(link.indexOf("href") + 6);
+              link = link.substr(0, link.indexOf("\""));
+              var md5 = tds[9].innerHTML;
+              md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
+              md5 = md5.substr(0, md5.indexOf("\""));
+
+              flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+              flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+              flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+              let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
+              $.ajax({
+                dataType: "json",
+                type:"GET",
+                url: diagLink ,
+                success: function(result) {
+                  if(result['result']=='success'){
+                    let names = result['names']
+                    let urls = result['urls']
+                    if(names.length>0){
+                      flhtml += "<tr><td>Pulsars: </td><td>";
+                      for(let i=0;i<names.length;i++){
+                        if(i<names.length-1){
+                          flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+                        }
+                        else{
+                          flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+                        }
+                      }
+                      flhtml += "</td></tr>"
+                    }
+                  }
+                },
+                complete: function(){
+                  let diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
+                  $.ajax({
+                    dataType: "json",
+                    type:"GET",
+                    url: diagLink ,
+                    success: function(result) {
+                      if(result['result']=='success'){
+                        let names = result['names']
+                        let urls = result['urls']
+                        if(names.length>0){
+                          flhtml += "<tr><td>Calibrators: </td><td>";
+                          for(let i=0;i<names.length;i++){
+                            if(i<names.length-1){
+                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+                            }
+                            else{
+                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+                            }
+                          }
+                          flhtml += "</td></tr>"
+                        }
+                      }
+                    },
+                    complete: function(){
+                      flhtml += "</tbody></table>";
+                      flbox.html(flhtml);
+                    }
+                  });
+                }
+              });
+              // flhtml += "</tbody></table>";
+              // flbox.html(flhtml);
+           }
 
             var flboxOuter = $('#fl-box');
             $.featherlight(flboxOuter);
