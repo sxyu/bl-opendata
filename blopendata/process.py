@@ -3,6 +3,9 @@ import os
 from flask import Flask
 from flaskext.mysql import MySQL
 from flask_compress import Compress
+import redis
+import json
+import numpy as np
 
 test_config = None
 
@@ -107,18 +110,18 @@ def getCadenceSet(ind,index,targets,times):
     return toReturn
 
 
-
+#TODO make this modular
 A19 = Time('2019-02-01T00:00:00',format='isot')
 B19 = Time('2019-08-01T00:00:00',format='isot')
 A20 = Time('2020-02-01T00:00:00',format='isot')
 B20 = Time('2020-08-01T00:00:00',format='isot')
 A21 = Time('2021-02-01T00:00:00',format='isot')
-def getTemp(mjd):
+def getTemp(mjd,band):
     t = Time(float(mjd),format='mjd')
     #year = int(str(t.utc.iso).split("-")[0])
     tag = "21A"
     if t<A19:
-        return "None"
+        return ("Unknown","Unknown","Unknown")
     elif t<B19:
         tag = "19A"
     elif t<A20:
@@ -131,19 +134,76 @@ def getTemp(mjd):
     p = 6379
     r = redis.Redis(host=h,port=p,db=0)
     keys = r.hkeys("OREO_TSYS_"+tag)
-    times = [toTime(k) for k in keys]
+    times = [toTime(k.decode("utf-8")) for k in keys]
     diff = [abs(time - t) for time in times]
-    i = np.argmin(diff)
-    if diff[i]>.5:
-        return "None"
-    key = keys[i]
-    result = str(r.hget("OREO_TSYS_"+tag,key))
-    result = "{" + " ,".join(result.split(",")[1:])
-    result = eval(result)
-    return result['forecast'],result['measured'][0],result['measured'][1]
+    while len(keys)>0:
+        i = np.argmin(diff)
+        if diff[i]>.5:
+            return ("Unknown","Unknown","Unknown")
+        key = keys.pop(i)
+        result = str(r.hget("OREO_TSYS_"+tag,key))
+        result = result.split(",")
+        result = '{"reciever":"' + result[0].split(":")[-1] +'",'+' ,'.join(result[1:])[:-1]
+        if result[-1]!="}":
+            result = result + "}"
+        result = eval(result)
+        if toBand(result["reciever"]) == band:
+            return float(result['forecast']),float(result['measured'][0]),float(result['measured'][1])
+        diff.pop(i)
+    return ("Unknown","Unknown","Unknown")
+
+recieverToBand = {"Rcvr1_2":"L","Rcvr2_3":"S","Rcvr4_6":"C","Rcvr8_10":"X","Rcvr8_12":"X"}
+
+def toBand(input):
+    if type(input)==str:
+        return recieverToBand[input]
+    else:
+        if input < 2000:
+            return "L"
+        elif input < 4000:
+            return "S"
+        elif input <8000:
+            return "C"
+        return "X"
+
+
 def toTime(dateString):
     newStr = dateString[:4]+"-"+dateString[4:6]+"-"+dateString[6:11]+":"+dateString[11:13]+":"+dateString[13:15]
+    print(newStr)
     return Time(newStr, format = 'isot',scale='utc')
+
+def updateTemp(id,temp):
+    print(id,temp)
+    forecast = temp[0]
+    tempX = temp[1]
+    tempY = temp[2]
+
+    sql_cmd = "Update files Set tempForecast = %s Where id = %s;"
+    #orig_print(id)
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd,[forecast,id])
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    sql_cmd = "Update files Set tempX = %s Where id = %s;"
+    #orig_print(id)
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd,[tempX,id])
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    sql_cmd = "Update files Set tempY = %s Where id = %s;"
+    #orig_print(id)
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd,[tempY,id])
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 #
 sql_cmd = "Update files Set cadence = %s Where project != %s and (project != %s or not target_name LIKE %s);"
@@ -160,7 +220,7 @@ conn.close()
 
 #GBT work
 #for day in range(57348,59015):
-for day in range(57348,59015):
+for day in range(57348,57349):
     #Fetch data
     sql_cmd = 'SELECT * FROM files WHERE '
     sql_args = []
@@ -194,14 +254,17 @@ for day in range(57348,59015):
         entry['target'] = row[3]
         entry['url'] = row[10]
         entry['utc'] = row[2]
+        entry['center_freq'] = row[6]
+        entry['mjd'] = Time(str(row[2]), format='iso').mjd #For efficiency sake should probobly change this later since it is just being converted back into utc within the method
         entry['cadence-url'] = row[11]
         data.append(entry)
-
+    #print(data)
 
 
     #Find cadences
     skip =0
     url = 'Unknown'
+    temp = (0,0,0)
     targets, indices,times = getTargets(data)
     for i in range(len(data)):
         print(i)
@@ -220,10 +283,13 @@ for day in range(57348,59015):
             conn.commit()
             cursor.close()
             conn.close()
+            updateTemp(id,temp)
         else:
             index = indices[i]
             # stop = min(index+6,len(target))
             targetSet = getCadenceSet(i,indices,targets,times)
+            temp = getTemp(data[i]['mjd'],toBand(data[i]['center_freq']))
+            updateTemp(id,temp)
             print(targetSet)
             print(times[index:index+6])
             if len(targetSet)==6 and isCadence(0,targetSet):
@@ -265,7 +331,7 @@ for day in range(57348,59015):
                 cursor.close()
                 conn.close()
 
-
+0/0
 #Parkes data
 #for day in range(57348,59001):
 for day in range(57348,59015):

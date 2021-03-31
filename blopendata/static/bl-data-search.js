@@ -84,7 +84,7 @@ $(document).ready(function(){
                 } // lines
           }; // return object
         }; // getCelestialConfig
-
+        var entries = {} //Hoping initialization works the way I think it does
         var celestialNeedUpdate = false;
         var celestialCenterPos = [0, 0];
 
@@ -410,7 +410,7 @@ $(document).ready(function(){
                   }
                   // update the datatable
                   dataTable.clear();
-                  var entries = result['data'];
+                  entries = result['data'];
                   for (var i = 0; i < entries.length; i++) {
                     var date = new Date(entries[i]['utc']);
                     var ftype = entries[i]['file_type'];
@@ -563,202 +563,238 @@ $(document).ready(function(){
 
         // handle table row click (show more info about data file)
         $('#results-table tbody').on('click', 'tr', function () {
-            var flbox = $('#fl-box-inner');
-            var flhtml = "";
-            var $this = $(this);
-            var tds = $this.find('td');
-            var cadence = $('#cadence-on')[0].checked;
-            if(cadence){
-              flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + "Primary Target: " + tds[3].innerText + "</th></tr></thead><tbody>";
-              if (tds[3].innerText in targets) {
-                  flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
-              }
-              flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
-              flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
-              flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
-              flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
-              var ra = parseFloat(tds[4].innerText) / 15.0;
-              var raH = Math.floor(ra);
-              var raM = Math.floor((ra - raH) * 60.);
-              var raS = (ra - raH - raM / 60.) * 3600.;
-              flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
-              flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
-              flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
-              // flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
-              // flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
-              var link = tds[9].innerHTML;
-              link = link.substr(link.indexOf("href") + 6);
-              link = link.substr(0, link.indexOf("\""));
-              var md5 = tds[9].innerHTML;
-              md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
-              md5 = md5.substr(0, md5.indexOf("\""));
+          var flbox = $('#fl-box-inner');
+          var flhtml = "";
+          var $this = $(this);
+          var tds = $this.find('td');
+          var cadence = $('#cadence-on')[0].checked;
+          if(cadence){
+            flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + "Primary Target: " + tds[3].innerText + "</th></tr></thead><tbody>";
+          }
+          else{
+            flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + "Target: " + tds[3].innerText + "</th></tr></thead><tbody>";
+          }
+          if (tds[3].innerText in targets) {
+              flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
+          }
+          flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
+          flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
+          flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
+          flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
+          var ra = parseFloat(tds[4].innerText) / 15.0;
+          var raH = Math.floor(ra);
+          var raM = Math.floor((ra - raH) * 60.);
+          var raS = (ra - raH - raM / 60.) * 3600.;
+          flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
+          flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
+          flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
+          if(!cadence){
+            flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
+            flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
+          }
 
-              flhtml += "<tr><td>Cadence:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+          var link = tds[9].innerHTML;
+          link = link.substr(link.indexOf("href") + 6);
+          link = link.substr(0, link.indexOf("\""));
+          var md5 = tds[9].innerHTML;
+          md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
+          md5 = md5.substr(0, md5.indexOf("\""));
+          //insert temp stuff here
+          //flhtml += "<tr><td>Temperature:</td><td>" + entries[i]['tempX'] + "</td></tr>";
 
               //Handle finding information about cadence
-              $.ajax({
-                dataType: "json",
-                type:"GET",
-                url: link,
-                success: function(result) {
-                    if (result['result'] != "success") {
-                        showError(result['message']);
-                        return;
-                    }
-                    // update the datatable
-                    var entries = result['data'];
-                    var fine =[]
-                    var time =[]
-                    var mid =[]
-                    var raw =[]
-                    let targets = new Set()
-                    if(entries.length>0){
-                      // flhtml += "<tr><td>Downloads:</td><td>";
-                      for (var i = 0; i < entries.length; i++) {
-                          //flhtml+="<a href=\"" + entries[i]['url']+ "\">" + entries[i]['target'] + ", </a>";
-                          var entry = entries[i]
-                          targets.add(entry['target'])
-                          if (entry['file_type'] != 'HDF5'){
-                            raw.push(entry)
+          //let tempGet = openDataAPI + "get-Temp/"+tds[1].innerText +"/"+tds[6].innerText;
+          let tempGet = openDataAPI + "get-Temp/"
+          let tempRequest = {"id":urlToID[link]}
+          $.ajax({
+            dataType: "json",
+            type: "GET",
+            url: tempGet,
+            data: tempRequest,
+            async:false,
+            success: function(result){
+              flhtml+="<tr><td>Tsys (K):</td><td>" + result['tempX'] + ", " + result['tempY'] + "</td></tr>";
+            },
+            error: function(){
+              flhtml+="<tr><td>Tsys (K):</td><td> Unknown, Unknown </td></tr>";
+            }
+          })
+          if(cadence){
+            flhtml += "<tr><td>Cadence:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+            $.ajax({
+              dataType: "json",
+              type:"GET",
+              url: link,
+              async: false,
+              success: function(result) {
+                  if (result['result'] != "success") {
+                      showError(result['message']);
+                      return;
+                  }
+                  // update the datatable
+                  var entries = result['data'];
+                  var fine =[]
+                  var time =[]
+                  var mid =[]
+                  var raw =[]
+                  let targets = new Set()
+                  if(entries.length>0){
+                    // flhtml += "<tr><td>Downloads:</td><td>";
+                    for (var i = 0; i < entries.length; i++) {
+                        //flhtml+="<a href=\"" + entries[i]['url']+ "\">" + entries[i]['target'] + ", </a>";
+                        var entry = entries[i]
+                        targets.add(entry['target'])
+                        if (entry['file_type'] != 'HDF5'){
+                          raw.push(entry)
+                        }
+                        else{
+                          var split = entry['url'].split('.')
+                          split = split[split.length-2].split('_')
+                          var end = split[split.length-1]
+                          if (end == 'fine'){
+                            fine.push(entry)
+                          }
+                          else if (end =='mid'){
+                            mid.push(entry)
                           }
                           else{
-                            var split = entry['url'].split('.')
-                            split = split[split.length-2].split('_')
-                            var end = split[split.length-1]
-                            if (end == 'fine'){
-                              fine.push(entry)
-                            }
-                            else if (end =='mid'){
-                              mid.push(entry)
-                            }
-                            else{
-                              time.push(entry)
-                            }
+                            time.push(entry)
                           }
-                      }
+                        }
+                    }
 
-                      if (fine.length>0){
-                        flhtml += "<tr><td>Downloads(Fine):</td><td>";
-                        for(var i=0;i<fine.length;i++){
-                          if(i<fine.length-1){
-                            flhtml+="<a href=\"" + fine[i]['url']+ "\">" + fine[i]['target'] + ", </a>";
-                          }
-                          else{
-                            flhtml+="<a href=\"" + fine[i]['url']+ "\">" + fine[i]['target'] + "</a>";
-                          }
+                    if (fine.length>0){
+                      flhtml += "<tr><td>Downloads(Fine):</td><td>";
+                      for(var i=0;i<fine.length;i++){
+                        if(i<fine.length-1){
+                          flhtml+="<a href=\"" + fine[i]['url']+ "\">" + fine[i]['target'] + ", </a>";
                         }
-                        flhtml+="</td></tr>";
-                      }
-                      if (mid.length>0){
-                        flhtml += "<tr><td>Downloads(Mid):</td><td>";
-                        for(var i=0;i<mid.length;i++){
-                          if(i<mid.length-1){
-                            flhtml+="<a href=\"" + mid[i]['url']+ "\">" + mid[i]['target'] + ", </a>";
-                          }
-                          else{
-                            flhtml+="<a href=\"" + mid[i]['url']+ "\">" + mid[i]['target'] + "</a>";
-                          }
+                        else{
+                          flhtml+="<a href=\"" + fine[i]['url']+ "\">" + fine[i]['target'] + "</a>";
                         }
-                        flhtml+="</td></tr>";
                       }
-                      if (time.length>0){
-                        flhtml += "<tr><td>Downloads(Time):</td><td>";
-                        for(var i=0;i<time.length;i++){
-                          if(i<time.length-1){
-                            flhtml+="<a href=\"" + time[i]['url']+ "\">" + time[i]['target'] + ", </a>";
-                          } else{
-                            flhtml+="<a href=\"" + time[i]['url']+ "\">" + time[i]['target'] + "</a>";
-                          }
+                      flhtml+="</td></tr>";
+                    }
+                    if (mid.length>0){
+                      flhtml += "<tr><td>Downloads(Mid):</td><td>";
+                      for(var i=0;i<mid.length;i++){
+                        if(i<mid.length-1){
+                          flhtml+="<a href=\"" + mid[i]['url']+ "\">" + mid[i]['target'] + ", </a>";
                         }
-                        flhtml+="</td></tr>";
-                      }
-                      if (raw.length>0){
-                        flhtml += "<tr><td>Downloads(Raw):</td><td>";
-                        for(var i=0;i<raw.length;i++){
-                          if(i<raw.length-1){
-                            flhtml+="<a href=\"" + raw[i]['url']+ "\">" + raw[i]['target'] + ", </a>";
-                          } else{
-                            flhtml+="<a href=\"" + raw[i]['url']+ "\">" + raw[i]['target'] + "</a>";
-                          }
+                        else{
+                          flhtml+="<a href=\"" + mid[i]['url']+ "\">" + mid[i]['target'] + "</a>";
                         }
-                        flhtml+="</td></tr>";
                       }
+                      flhtml+="</td></tr>";
+                    }
+                    if (time.length>0){
+                      flhtml += "<tr><td>Downloads(Time):</td><td>";
+                      for(var i=0;i<time.length;i++){
+                        if(i<time.length-1){
+                          flhtml+="<a href=\"" + time[i]['url']+ "\">" + time[i]['target'] + ", </a>";
+                        } else{
+                          flhtml+="<a href=\"" + time[i]['url']+ "\">" + time[i]['target'] + "</a>";
+                        }
+                      }
+                      flhtml+="</td></tr>";
+                    }
+                    if (raw.length>0){
+                      flhtml += "<tr><td>Downloads(Raw):</td><td>";
+                      for(var i=0;i<raw.length;i++){
+                        if(i<raw.length-1){
+                          flhtml+="<a href=\"" + raw[i]['url']+ "\">" + raw[i]['target'] + ", </a>";
+                        } else{
+                          flhtml+="<a href=\"" + raw[i]['url']+ "\">" + raw[i]['target'] + "</a>";
+                        }
+                      }
+                      flhtml+="</td></tr>";
+                    }
 
-                    flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-                    //Handling Simbad Query
-                    flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td>"
-                    for (let target of targets){
-                      flhtml+="<a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + target + "\" target=\"_blank\">" + target + " </a>";
-                    }
-                    flhtml+= "</td></tr>"
-                    } else{
-                      flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-                      flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
-                    }
-                },
-                error: function() {
-                  flhtml += "<tr><td>Downloads:</td><td><a href=\"" + link+ "\">" + 'error '+ "</a></td></tr>";
                   flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-                  flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
-                  flhtml += "</tbody></table>";
-                  flbox.html(flhtml);
-                },
-                complete : function () {
-                  let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
-                  $.ajax({
-                    dataType: "json",
-                    type:"GET",
-                    url: diagLink ,
-                    success: function(result) {
-                      if(result['result']=='success'){
-                        let names = result['names']
-                        let urls = result['urls']
-                        if(names.length>0){
-                          flhtml += "<tr><td>Pulsars: </td><td>";
-                          for(let i=0;i<names.length;i++){
-                            if(i<names.length-1){
-                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
-                            }
-                            else{
-                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
-                            }
+                  //Handling Simbad Query
+                  flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td>"
+                  for (let target of targets){
+                    flhtml+="<a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + target + "\" target=\"_blank\">" + target + " </a>";
+                  }
+                  flhtml+= "</td></tr>"
+                  } else{
+                    flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+                    flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+                  }
+              },
+              error: function() {
+                flhtml += "<tr><td>Downloads:</td><td><a href=\"" + link+ "\">" + 'error '+ "</a></td></tr>";
+                flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+                flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+                flhtml += "</tbody></table>";
+                flbox.html(flhtml);
+              },
+              complete : function () {}
+        });}
+        else{
+          flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+          flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+          flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+        }
 
-                          }
-                          flhtml += "</td></tr>"
-                        }
-                      }
-                    },
-                    complete: function(){
-                      let diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
-                      $.ajax({
-                        dataType: "json",
-                        type:"GET",
-                        url: diagLink ,
-                        success: function(result) {
-                          if(result['result']=='success'){
-                            let names = result['names']
-                            let urls = result['urls']
-                            if(names.length>0){
-                              flhtml += "<tr><td>Calibrators: </td><td>";
-                              if(i<names.length-1){
-                                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
-                              }
-                              else{
-                                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
-                              }
-                              flhtml += "</td></tr>"
-                            }
-                          }
-                        },
-                        complete: function(){
-                          flhtml += "</tbody></table>";
-                          flbox.html(flhtml);
-                        }
-                      });
-                    }
-                  });
+        let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
+        $.ajax({
+          dataType: "json",
+          type:"GET",
+          url: diagLink ,
+          async:false,
+          success: function(result) {
+            if(result['result']=='success'){
+              let names = result['names']
+              let urls = result['urls']
+              if(names.length>0){
+                flhtml += "<tr><td>Pulsars: </td><td>";
+                for(let i=0;i<names.length;i++){
+                  if(i<names.length-1){
+                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+                  }
+                  else{
+                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+                  }
+
                 }
-          });
+                flhtml += "</td></tr>"
+              }
+            }
+          },
+          complete: function(){}
+        });
+
+        diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
+        $.ajax({
+          dataType: "json",
+          type:"GET",
+          url: diagLink ,
+          async:false,
+          success: function(result) {
+            if(result['result']=='success'){
+              let names = result['names']
+              let urls = result['urls']
+
+              if(names.length>0){
+                flhtml += "<tr><td>Calibrators: </td><td>";
+                for(let i=0;i<names.length;i++){
+                  if(i<names.length-1){
+                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+                  }
+                  else{
+                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+                  }
+                }
+                flhtml += "</td></tr>"
+                }
+              }
+          },
+          complete: function(){
+            flhtml += "</tbody></table>";
+            flbox.html(flhtml);
+          }
+        });
 
               // $.get(link, function(result) {
               //     // fetch list of targets first
@@ -773,95 +809,99 @@ $(document).ready(function(){
               // flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
               // flhtml += "</tbody></table>";
               // flbox.html(flhtml);
-            }
-            else{
-              flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + tds[3].innerText + "</th></tr></thead><tbody>";
-              if (tds[3].innerText in targets) {
-                  flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
-              }
-              flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
-              flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
-              flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
-              flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
-              var ra = parseFloat(tds[4].innerText) / 15.0;
-              var raH = Math.floor(ra);
-              var raM = Math.floor((ra - raH) * 60.);
-              var raS = (ra - raH - raM / 60.) * 3600.;
-              flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
-              flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
-              flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
-              flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
-              flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
-              var link = tds[9].innerHTML;
-              link = link.substr(link.indexOf("href") + 6);
-              link = link.substr(0, link.indexOf("\""));
-              var md5 = tds[9].innerHTML;
-              md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
-              md5 = md5.substr(0, md5.indexOf("\""));
+           //  }
+           //  else{
+           //    flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + tds[3].innerText + "</th></tr></thead><tbody>";
+           //    if (tds[3].innerText in targets) {
+           //        flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
+           //    }
+           //    flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
+           //    flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
+           //    flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
+           //    flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
+           //    var ra = parseFloat(tds[4].innerText) / 15.0;
+           //    var raH = Math.floor(ra);
+           //    var raM = Math.floor((ra - raH) * 60.);
+           //    var raS = (ra - raH - raM / 60.) * 3600.;
+           //    flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
+           //    flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
+           //    flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
+           //    flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
+           //    flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
+           //    var link = tds[9].innerHTML;
+           //    link = link.substr(link.indexOf("href") + 6);
+           //    link = link.substr(0, link.indexOf("\""));
+           //    var md5 = tds[9].innerHTML;
+           //    md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
+           //    md5 = md5.substr(0, md5.indexOf("\""));
+           //
+           //    //flhtml += "<tr><td>Temperature:</td><td>" + entries[i]['tempX'] + "</td></tr>";
+           //
+           //    flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
+           //    flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
+           //    flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
+           //    let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
+           //    $.ajax({
+           //      dataType: "json",
+           //      type:"GET",
+           //      url: diagLink ,
+           //      async: false,
+           //      success: function(result) {
+           //        if(result['result']=='success'){
+           //          let names = result['names']
+           //          let urls = result['urls']
+           //          if(names.length>0){
+           //            flhtml += "<tr><td>Pulsars: </td><td>";
+           //            for(let i=0;i<names.length;i++){
+           //              if(i<names.length-1){
+           //                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+           //              }
+           //              else{
+           //                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+           //              }
+           //            }
+           //            flhtml += "</td></tr>"
+           //          }
+           //        }
+           //      },
+           //      complete: function(){
+           //        let diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
+           //        $.ajax({
+           //          dataType: "json",
+           //          type:"GET",
+           //          url: diagLink ,
+           //          async: false,
+           //          success: function(result) {
+           //            if(result['result']=='success'){
+           //              let names = result['names']
+           //              let urls = result['urls']
+           //              if(names.length>0){
+           //                flhtml += "<tr><td>Calibrators: </td><td>";
+           //                for(let i=0;i<names.length;i++){
+           //                  if(i<names.length-1){
+           //                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
+           //                  }
+           //                  else{
+           //                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
+           //                  }
+           //                }
+           //                flhtml += "</td></tr>"
+           //              }
+           //            }
+           //          },
+           //          complete: function(){
+           //            flhtml += "</tbody></table>";
+           //            flbox.html(flhtml);
+           //          }
+           //        });
+           //      }
+           //    });
+           //    // flhtml += "</tbody></table>";
+           //    // flbox.html(flhtml);
 
-              flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
-              flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-              flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
-              let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
-              $.ajax({
-                dataType: "json",
-                type:"GET",
-                url: diagLink ,
-                success: function(result) {
-                  if(result['result']=='success'){
-                    let names = result['names']
-                    let urls = result['urls']
-                    if(names.length>0){
-                      flhtml += "<tr><td>Pulsars: </td><td>";
-                      for(let i=0;i<names.length;i++){
-                        if(i<names.length-1){
-                          flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
-                        }
-                        else{
-                          flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
-                        }
-                      }
-                      flhtml += "</td></tr>"
-                    }
-                  }
-                },
-                complete: function(){
-                  let diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
-                  $.ajax({
-                    dataType: "json",
-                    type:"GET",
-                    url: diagLink ,
-                    success: function(result) {
-                      if(result['result']=='success'){
-                        let names = result['names']
-                        let urls = result['urls']
-                        if(names.length>0){
-                          flhtml += "<tr><td>Calibrators: </td><td>";
-                          for(let i=0;i<names.length;i++){
-                            if(i<names.length-1){
-                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
-                            }
-                            else{
-                              flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
-                            }
-                          }
-                          flhtml += "</td></tr>"
-                        }
-                      }
-                    },
-                    complete: function(){
-                      flhtml += "</tbody></table>";
-                      flbox.html(flhtml);
-                    }
-                  });
-                }
-              });
-              // flhtml += "</tbody></table>";
-              // flbox.html(flhtml);
-           }
 
-            var flboxOuter = $('#fl-box');
-            $.featherlight(flboxOuter);
+          var flboxOuter = $('#fl-box');
+          $.featherlight(flboxOuter);
           } ); // click
           // prevent row click handler from affecting download link
           $('#results-table tbody').on('click', 'tr td a', function (e) {

@@ -323,6 +323,9 @@ def api_query():
         entry['md5sum'] = row[9]
         entry['url'] = row[10]
         entry['cadence_url'] = row[11]
+        # entry['tempForecast'] = row[12]
+        entry['tempX'] = row[13]
+        entry['tempY'] = row[14]
         if cen_coord is not None:
             coord = SkyCoord(ra = entry['ra'] * u.deg, dec = entry['decl'] * u.deg)
             #print(coord, file=sys.stderr)
@@ -738,3 +741,21 @@ def getCalibratorRedisData(entry):
 
 def getPulsarRedisData(entry):
     return NotDefined
+
+
+@bp.route('/api/get-Temp/', methods=(['GET','POST']))
+def get_Temp():
+    #utcTime = str(Time(float(mjd), format='mjd').utc.iso)
+    id = request.args.get("id")
+    print("ID:" + id)
+    sql_cmd = "Select tempX,tempY from files where id=%s Limit 1"
+    sql_args = [str(id)]
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd, sql_args)
+    table = cursor.fetchall()
+    conn.close()
+
+    if len(table)==0:
+        return jsonify({'result': 'success','tempX':"Unknown",'tempY':"Unknown"})
+    return jsonify({'result': 'success','tempX':table[0][0],'tempY':table[0][1]})

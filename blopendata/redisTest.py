@@ -85,18 +85,23 @@ def getTemp(mjd):
     p = 6379
     r = redis.Redis(host=h,port=p,db=0)
     keys = r.hkeys("OREO_TSYS_"+tag)
-    times = [toTime(k) for k in keys]
+    times = [toTime(k.decode("utf-8")) for k in keys]
     diff = [abs(time - t) for time in times]
     i = np.argmin(diff)
     if diff[i]>.5:
         return
     key = keys[i]
     result = str(r.hget("OREO_TSYS_"+tag,key))
-    result = "{" + " ,".join(result.split(",")[1:])
+    result = result.split(",")
+    result = '{"reciever":"' + result[0].split(":")[-1] +'",'+' ,'.join(result[1:])[:-1]
+    if result[-1]!="}":
+        result = result + "}"
+    print(result)
     result = eval(result)
     print(result['measured'])
 def toTime(dateString):
     newStr = dateString[:4]+"-"+dateString[4:6]+"-"+dateString[6:11]+":"+dateString[11:13]+":"+dateString[13:15]
+    print(newStr)
     return Time(newStr, format = 'isot',scale='utc')
 
 
