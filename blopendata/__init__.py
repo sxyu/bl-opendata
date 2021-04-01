@@ -17,6 +17,9 @@ app.config['MYSQL_DATABASE_USER'] = 'ggroode'
 app.config['MYSQL_DATABASE_PASSWORD'] = ''
 app.config['MYSQL_DATABASE_DB'] = 'btldata'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+
+#I believe you should comment about above set of instructions and Uncomment the ones below but not 100% sure those are correct.
+
 # app.config['MYSQL_DATABASE_USER'] = 'readonly'
 # app.config['MYSQL_DATABASE_PASSWORD'] = ''
 # app.config['MYSQL_DATABASE_DB'] = 'btldata'

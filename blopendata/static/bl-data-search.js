@@ -4,6 +4,7 @@ $(document).ready(function(){
         /* create a default Celestial config object, with parent object ID 'containerName' */
         var urlToID = {}
         var openDataAPI ="http://35.236.84.6:5001/api/"
+        //var openDataAPI = "http://seti.berkeley.edu/opendata/api/" Uncomment Me and comment out above line
         var getCelestialConfig = function(containerName = "celestial-map") {
           return {
               width: 0,
@@ -348,7 +349,7 @@ $(document).ready(function(){
               searchRequest['limit']=1
               $.ajax({
                 dataType: "json",
-                url: BreakthroughAPI.query_api_url,
+                url: openDataAPI+ "query-files",
                 data: searchRequest,
                 success: function(result) {
                     if (result['result'] != "success") {
@@ -401,7 +402,7 @@ $(document).ready(function(){
             // call API to get new data
             $.ajax({
               dataType: "json",
-              url: BreakthroughAPI.query_api_url,
+              url: openDataAPI+ "query-files",
               data: data,
               success: function(result) {
                   if (result['result'] != "success") {
