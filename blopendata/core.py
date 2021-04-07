@@ -279,8 +279,9 @@ def api_query():
         sql_args.append('filterbank')
         sql_args.append('hdf5')
         sql_args.extend(grade)
-        sql_cmd += "OR (file_type = %s AND SUBSTRING_INDEX(SUBSTRING_INDEX(url, '.', -2),'.',1) in ({})))".format(",".join(["%s"] * len(grade)))
+        sql_cmd += "OR ((file_type = %s OR file_type=%s) AND SUBSTRING_INDEX(SUBSTRING_INDEX(url, '.', -2),'.',1) in ({})))".format(",".join(["%s"] * len(grade)))
         sql_args.append('filterbank')
+        sql_args.append('hdf5')
         sql_args.extend([grades_fil[g] for g in grade])
 
 
