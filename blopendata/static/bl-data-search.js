@@ -318,6 +318,44 @@ $(document).ready(function(){
                 }
                 data['grades'] = dataStr.substr(0,dataStr.length-1);
             }
+
+            // // Data types
+            var fineData = $('#data-fine')[0].checked;
+            var midData= $('#data-mid')[0].checked;
+            var timeData = $('#data-time')[0].checked;
+            if(!(fineData && midData && timeData)){
+                dataStr = "";
+                if (fineData) dataStr += "fine,";
+                if (midData) dataStr += "mid,";
+                if (timeData) dataStr += "time,";
+                if (dataStr.length == 0) {
+                    showError("Please select at least one data Type.");
+                    return;
+                }
+                data['grades'] = dataStr.substr(0,dataStr.length-1);
+            }
+
+            // // Data types
+            var qualityA = $('#quality-A')[0].checked;
+            var qualityB = $('#quality-B')[0].checked;
+            var qualityC = $('#quality-C')[0].checked;
+            var qualityF = $('#quality-F')[0].checked;
+            var qualityUngraded = $('#quality-Ungraded')[0].checked;
+            if(!(qualityA && qualityB && qualityC && qualityF && qualityUngraded)){
+                qualStr = "";
+                if (qualityA) qualStr += "A,";
+                if (qualityB) qualStr += "B,";
+                if (qualityC) qualStr += "C,";
+                if (qualityF) qualStr += "F,";
+                if (qualityUngraded) qualStr += "Ungraded,";
+                if (qualStr.length == 0) {
+                    showError("Please select at least one quality level.");
+                    return;
+                }
+                data['quality'] = qualStr.substr(0,qualStr.length-1);
+            }
+
+
             var cadence = $('#cadence-on')[0].checked;
             if(cadence){
                 data['cadence']='True';
@@ -431,6 +469,7 @@ $(document).ready(function(){
                         Math.round(entries[i]['center_freq'] * PRECISION) / PRECISION,
                         ftype,
                         _humanFileSize(entries[i]['size'], false),
+                        entries[i]['quality'],
                         '<a class="download-link" href="'+entries[i][urlName]+'" title="MD5Sum: ' + entries[i]['md5sum'] + '"><i class="fas fa-cloud-download-alt"></i></a>',
                     ]);
                   }
@@ -463,7 +502,7 @@ $(document).ready(function(){
         }
 
         // set up autocomplete
-        $.get(BreakthroughAPI.targets_api_url, function(targetsList) {
+        $.get(openDataAPI+"list-targets?simbad", function(targetsList) {
             // fetch list of targets first
             var autoCompleteList = [], autoCompleteTrie = new AutoCompleteTrie();
             for (var key in targetsList) {
@@ -594,10 +633,10 @@ $(document).ready(function(){
             flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
           }
 
-          var link = tds[9].innerHTML;
+          var link = tds[10].innerHTML;
           link = link.substr(link.indexOf("href") + 6);
           link = link.substr(0, link.indexOf("\""));
-          var md5 = tds[9].innerHTML;
+          var md5 = tds[10].innerHTML;
           md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
           md5 = md5.substr(0, md5.indexOf("\""));
           //insert temp stuff here

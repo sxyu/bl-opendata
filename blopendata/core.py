@@ -142,7 +142,7 @@ def api_query():
     query for a list of files with associated info
     possible arguments: target, telescopes (comma-sep), file-types (comma-sep),
                         pos-ra, pos-dec, pos-rad, time-start, time-end, freq-start, freq-end, limit
-                        cadence, grades, primaryTarget
+                        cadence, grades, primaryTarget, quality
     returns: dictionary d with d["result"] in {"success", "error"}
                                d["message"] set to message on result "error"
                                d["data"] set to query result set on result "success"
@@ -268,7 +268,7 @@ def api_query():
         sql_cmd +=  " AND center_freq <= %s"
         sql_args.append(f_end)
 
-    print("test")
+    #print("test")
     if 'grades' in request.args:
         grade = request.args.get('grades').split(',')
         for g in grade:
@@ -283,12 +283,21 @@ def api_query():
         sql_args.append('filterbank')
         sql_args.extend([grades_fil[g] for g in grade])
 
+
     primaryTarget = False
     if 'cadence' in request.args:
         sql_cmd += " AND cadence != %s AND cadence is not Null"
         sql_args.append("Unknown")
         if 'primaryTarget' in request.args:
             primaryTarget=True
+
+    qualities = None
+    if 'quality' in request.args:
+        qualities = request.args.get('quality').split(',')
+        print(qualities)
+        if "Ungraded" not in qualities:
+            sql_cmd += " AND tempX != %s AND tempX is not Null"
+            sql_args.append("Unknown")
 
     if 'limit' in request.args:
         lim = int(request.args.get('limit'))
@@ -297,6 +306,8 @@ def api_query():
             sql_args.append(lim*10)
         else:
             sql_args.append(lim)
+
+
 
 
     print(sql_cmd, sql_args)
@@ -327,12 +338,16 @@ def api_query():
         # entry['tempForecast'] = row[12]
         entry['tempX'] = row[13]
         entry['tempY'] = row[14]
+        entry['quality'] = getQuality(entry)
+
         if cen_coord is not None:
             coord = SkyCoord(ra = entry['ra'] * u.deg, dec = entry['decl'] * u.deg)
             #print(coord, file=sys.stderr)
             if cen_coord.separation(coord) > rad * u.deg:
                 # out of position query range
                 continue
+        if qualities and entry['quality'] not in qualities:
+            continue
         data.append(entry)
 
 #Gavin #//TODO: Fix this for non hd5 data
@@ -742,6 +757,42 @@ def getCalibratorRedisData(entry):
 
 def getPulsarRedisData(entry):
     return NotDefined
+
+recieverToBand = {"Rcvr1_2":"L","Rcvr2_3":"S","Rcvr4_6":"C","Rcvr8_10":"X","Rcvr8_12":"X","Rcvr12_18":"Ku","Rcvr18_26":"K"}
+def toBand(input):
+    if type(input)==str:
+        return recieverToBand[input]
+    else:
+        if input < 2000:
+            return "L"
+        elif input < 4000:
+            return "S"
+        elif input <8000:
+            return "C"
+        elif input < 12000:
+            return "X"
+        elif input < 18000:
+            return "Ku"
+        return "K"
+qualDict = {}
+qualDict['L'] = lambda x: "A" if x < 20*2**.5 else "B" if x<20*2 else "C" if x<20*4 else "F"
+qualDict['S'] = lambda x: "A" if x < 22*2**.5 else "B" if x<22*2 else "C" if x<22*4 else "F"
+qualDict['C'] = lambda x: "A" if x < 18*2**.5 else "B" if x<18*2 else "C" if x<18*4 else "F"
+qualDict['X'] = lambda x: "A" if x < 27*2**.5 else "B" if x<27*2 else "C" if x<27*4 else "F"
+qualDict['Ku'] = lambda x: "A" if x < 30*2**.5 else "B" if x<30*2 else "C" if x<30*4 else "F"
+qualDict['K'] = lambda x: "A" if x < 45*2**.5 else "B" if x<45*2 else "C" if x<45*4 else "F" #Todo: Check this value
+def getQuality(entry):
+    """
+    A method which returns a grade based on some quality metric, at the moment it is just based on temperature
+    Possible Bug: This method relies on assumption that if tempX is known so is tempY
+    """
+    temp = "Unknown"
+    if entry['tempX'] and entry['tempX'] != "Unknown":
+        temp = max(float(entry['tempX']),float(entry['tempY']))
+    else:
+        return "Ungraded"
+    band = toBand(entry['center_freq'])
+    return qualDict[band](temp)
 
 
 @bp.route('/api/get-Temp/', methods=(['GET','POST']))

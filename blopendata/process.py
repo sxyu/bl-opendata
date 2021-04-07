@@ -152,8 +152,7 @@ def getTemp(mjd,band):
         diff.pop(i)
     return ("Unknown","Unknown","Unknown")
 
-recieverToBand = {"Rcvr1_2":"L","Rcvr2_3":"S","Rcvr4_6":"C","Rcvr8_10":"X","Rcvr8_12":"X"}
-
+recieverToBand = {"Rcvr1_2":"L","Rcvr2_3":"S","Rcvr4_6":"C","Rcvr8_10":"X","Rcvr8_12":"X","Rcvr12_18":"Ku","Rcvr18_26":"K"}
 def toBand(input):
     if type(input)==str:
         return recieverToBand[input]
@@ -164,7 +163,11 @@ def toBand(input):
             return "S"
         elif input <8000:
             return "C"
-        return "X"
+        elif input < 12000:
+            return "X"
+        elif input < 18000:
+            return "Ku"
+        return "K"
 
 
 def toTime(dateString):
