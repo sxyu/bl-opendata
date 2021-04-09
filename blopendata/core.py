@@ -142,7 +142,7 @@ def api_query():
     query for a list of files with associated info
     possible arguments: target, telescopes (comma-sep), file-types (comma-sep),
                         pos-ra, pos-dec, pos-rad, time-start, time-end, freq-start, freq-end, limit
-                        cadence, grades, primaryTarget, quality
+                        cadence, grades, primaryTarget, quality, minSize, maxSize
     returns: dictionary d with d["result"] in {"success", "error"}
                                d["message"] set to message on result "error"
                                d["data"] set to query result set on result "success"
@@ -268,6 +268,16 @@ def api_query():
         sql_cmd +=  " AND center_freq <= %s"
         sql_args.append(f_end)
 
+    if 'maxSize' in request.args:
+        maxSize = float(request.args.get('maxSize'))*10**9
+        sql_cmd += " AND size <= %s"
+        sql_args.append(str(maxSize))
+
+    if 'minSize' in request.args:
+        minSize = float(request.args.get('minSize'))*10**9
+        sql_cmd += " AND size >= %s"
+        sql_args.append(str(minSize))
+
     #print("test")
     if 'grades' in request.args:
         grade = request.args.get('grades').split(',')
@@ -286,7 +296,7 @@ def api_query():
 
 
     primaryTarget = False
-    if 'cadence' in request.args:
+    if 'cadence' in request.args and request.args.get('cadence'):
         sql_cmd += " AND cadence != %s AND cadence is not Null"
         sql_args.append("Unknown")
         if 'primaryTarget' in request.args:
@@ -300,13 +310,19 @@ def api_query():
             sql_cmd += " AND tempX != %s AND tempX is not Null"
             sql_args.append("Unknown")
 
+    hardLimit = 10000
     if 'limit' in request.args:
         lim = int(request.args.get('limit'))
+        lim = min(lim,hardLimit)
         sql_cmd +=  " LIMIT %s"
-        if 'cadence' in request.args:
-            sql_args.append(lim*10)
+        if 'cadence' in request.args and lim <hardLimit//10:
+            sql_args.append(lim*10) #TODO update this to work nicer
         else:
             sql_args.append(lim)
+    else:
+        sql_cmd +=  " LIMIT %s"
+        sql_args.append(hardLimit)
+
 
 
 
