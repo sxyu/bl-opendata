@@ -58,3 +58,11 @@
       
 - Website
   - To use simply go to the URL listed at the top. Functions primarily as a user friendly wrapper for the api/query-files request
+
+- Note on Quality:
+  - On both the website and the backend API you can get information regarding the "quality of data". The metric of how this is calculated may change over time but as of now it works as follows: There is a set of target system temperatures for different bands of data described on table 2 of https://www.gb.nrao.edu/scienceDocs/GBTog.pdf. The measured max temperature is used in the following scheme:
+    - A : temp < sqrt(2) * targetTemp
+    - B: sqrt(2) *targetTemp < temp < 2 * targetTemp
+    - C: 2* targetTemp < temp < 4 * targetTemp
+    - F: 4 * targetTemp < temp
+    - Ungraded: No temperature recorded.   
