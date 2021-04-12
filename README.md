@@ -5,9 +5,12 @@
 - Credit for the base code and features to https://github.com/sxyu/bl-opendata.
 
 - Instructions
-  - After installing the dependencies use call python3 run.py to run the program, make sure that you have a port forwarded for the website to work
-  - There are two components to this program, the openData website and the backend API which are detailed below
-  - Url for both website and API calls: http://35.236.84.6:5001/
+  - Hosting the Code:  
+    - After installing the dependencies use call python3 run.py to run the program, make sure that you have a port forwarded for the website to work
+  - Using the already hosted backendAPI and openData website
+    - There are two different URL's you can use. http://seti.berkeley.edu/opendata is the url corresponding to the more stable releases, and has access to the most up to date public data. http://35.236.84.6:5001/ is the website used for testing, it has access to less data but more up to date features, however it is also always undergoing active development so it can go down for short periods of time if errors occur. 
+    - The details of how to use the API and website are below.
+  - If you find any issues or have any suggestions feel free to add them to the git issues section.
   
 - API
   - The method descriptions are present as docstrings within core.py. A list of possible API requests: 
