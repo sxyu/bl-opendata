@@ -302,7 +302,11 @@ def api_query():
                 sql_cmd += " AND cadence != %s AND cadence is not Null"
                 sql_args.append("Unknown")
                 if 'primaryTarget' in request.args:
-                    primaryTarget=True
+                    try:
+                        if eval(request.args.get('primaryTarget')):
+                            primaryTarget=True
+                    except:
+                        return jsonify({'result': 'error', 'data':[], 'message': 'primary target should be a boolean value'})
         except:
             return jsonify({'result': 'error', 'data':[], 'message': 'cadence should be a boolean value'})
 
