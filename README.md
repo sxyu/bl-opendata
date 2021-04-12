@@ -30,7 +30,7 @@
       - Return Json:
         - 'result': either success or error
         - 'data': list of dictionaries, each with keys: 'target','target', 'telescope', 'utc', 'mjd', 'ra',
-                                          'decl', 'center_freq', 'file_type', 'size', 'md5sum', 'url'
+                                          'decl', 'center_freq', 'file_type', 'size', 'md5sum', 'url', 'tempX', 'tempY', 'minSize', 'maxSize'
     - api/get-diagnostic-sources/<string:diagnosticType>/<string:id>
       - Input: diagnosticType should either be Pulsar or Calibrator, id should be the id number of an observation
       - Return Json:
@@ -39,17 +39,19 @@
         - 'urls': Corresponding download url's to the name list above.
       
   - Query Files method details:
-    - Argument List: target (required), telescopes (comma-sep), file-types (comma-sep), pos-ra , pos-dec, pos-rad, time-start (mjd), time-end (mjd), freq-start, freq-end, limit, cadence (boolean), grades (space-sep)
+    - Argument List: target (required), telescopes (comma-sep), file-types (comma-sep), pos-ra , pos-dec, pos-rad, time-start (mjd), time-end (mjd), freq-start, freq-end, limit, cadence (boolean), grades (comma-sep), quality (comma-sep), minSize (GB), maxSize (GB)
       - target: The api will return all things containing the target string within the name, so if you set target to "" all targets will be returned, and if you set it to "HIP" only HIP targets will remain.
-      - Filtering: telescopes, file-types and grades are all enum's that are used to filter the data (grades only filters Hdf5 and filterbank data), the apropriate entry options can be gotten using the list-"" api calls above. 
-      - Position search: pos-ra, pos-dec, pos-rad only make sense if either all are used or none are used: pos-ra is the center right ascension in degrees and pos-dec is the center declination in degrees. Together these specify a specific point of the sky. From here you can now use pos-rad to set a radius in degrees and the search will limit itself to targets located within radius degrees of that point. 
-      - Cadence search: Setting cadence = True causes it to combine all responses within the same cadence (to be described below) and adds a new 'cadence_url' part to the entries containing the cadence-url as defined under api/get-cadence-url. On the front end it displays the cadence url in the place it would usually display the normal url (which can still be accessed by opening up the entry)
-        - cadence definition: A cadence is defined to be a series of target searches looking something like ABACAD though partial cadences in the form of ABAC will also be marked as cadences
+      - Filtering: telescopes, file-types, quality and grades are all enum's that are used to filter the data (grades only filters Hdf5 and filterbank data), the apropriate entry options can be gotten using the list-"" api calls above. 
+      - Position search: pos-ra, pos-dec, pos-rad only make sense if either all are used or none are used (Exception Below): pos-ra is the center right ascension in degrees a        and pos-dec is the center declination in degrees. Together these specify a specific point of the sky. From here you can now use pos-rad to set a radius in degrees and        the search will limit itself to targets located within radius degrees of that point. 
+         - Note: if only pos-rad is supplied the code will use the pos-ra and pos-dec corresponding to "target" (as long as there is an exact match within the database).                Additionally when doing this, the code will no longer filter based on target name. On the front end website this is achieved with the search around this target                option.   
+      - Cadence search: Setting cadence = True causes it to combine all responses within the same cadence (to be described below) and adds a new 'cadence_url' part to the             entries containing the cadence-url as defined under api/get-cadence-url. On the front end it displays the cadence url in the place it would usually display the               normal url (which can still be accessed by opening up the entry)
+        - Cadence definition: A cadence is defined to be a series of target searches looking something like ABACAD though partial cadences in the form of ABAC will also be             marked as cadences
+        - Primary Target: If this is set the search will only return cadences where the target is the A of the cadence, rather than returning all cadences that the target is           a member of. 
     - Return Json:
       - 'result': either success or error
       - 'data': list of dictionaries, each with keys: 'target','target', 'telescope', 'utc', 'mjd', 'ra',
-                                          'decl', 'center_freq', 'file_type', 'size', 'md5sum', 'url', 'cadence_url' (if cadence=True)
+                                          'decl', 'center_freq', 'file_type', 'size', 'md5sum', 'url', 'cadence_url', 'tempX', 'tempY', 'minSize', 'maxSize', 'quality'
+      - 'message': if the result was an error.
       
-
 - Website
   - To use simply go to the URL listed at the top. Functions primarily as a user friendly wrapper for the api/query-files request
