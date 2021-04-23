@@ -303,21 +303,7 @@ $(document).ready(function(){
                 }
                 data['file-types'] = ftypeStr.substr(0, ftypeStr.length-1);
             }
-            // // Data types
-            var fineData = $('#data-fine')[0].checked;
-            var midData= $('#data-mid')[0].checked;
-            var timeData = $('#data-time')[0].checked;
-            if(!(fineData && midData && timeData)){
-                dataStr = "";
-                if (fineData) dataStr += "fine,";
-                if (midData) dataStr += "mid,";
-                if (timeData) dataStr += "time";
-                if (dataStr.length == 0) {
-                    showError("Please select at least one data Type.");
-                    return;
-                }
-                data['grades'] = dataStr.substr(0,dataStr.length-1);
-            }
+
 
             // // Data types
             var fineData = $('#data-fine')[0].checked;
@@ -484,7 +470,7 @@ $(document).ready(function(){
             });
         }
 
-        document.getElementById('targetCentered').onchange=_updateQuery;
+
         var lastUpdateTime = new Date().getTime();
 
         /* update the query table lazily, 'absorbing' calls that are close in time to reduce number of API calls */
@@ -581,6 +567,7 @@ $(document).ready(function(){
         $('#search-options').find("input[type='checkbox']").change(function() {
             updateQuery();
         });
+        document.getElementById('targetCentered').onchange=_updateQuery;
         $('#search-options').find("input[type='number']").on("change", function (event) {
             updateQuery();
         })

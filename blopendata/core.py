@@ -131,6 +131,15 @@ def api_list_file_types():
     conn.close()
     return jsonify(ftypes)
 
+@bp.route('/api/list-grades', methods=('GET', 'POST'))
+def api_list_grades():
+    """ get list of grades that can be searched on"""
+    return jsonify(list(grades))
+
+@bp.route('/api/list-quality', methods=('GET', 'POST'))
+def api_list_quality():
+    """ get list of quality grades that can be searched on"""
+    return jsonify(['A','B','C','F','Ungraded'])
 
 # orig_print = print
 # print = str
@@ -421,7 +430,9 @@ def api_query():
                         if 'file-types' in request.args:
                             split_url[2] = split_url[2]+'fileTypes:' + request.args.get('file-types') + ";"
                         if 'grades' in request.args:
-                            split_url[2] = split_url[2] +'grades:' + request.args.get('grades')
+                            split_url[2] = split_url[2] +'grades:' + request.args.get('grades') + ";"
+                        if 'quality' in request.args:
+                            split_url[2] = split_url[2] + 'quality:' + request.args.get('quality') + ";"
                         cadence_url = "-".join(split_url)
                         entry['cadence_url']=cadence_url
                         #if cadence_url == 'Unknown' or cadence_url not in cadences:
@@ -700,6 +711,9 @@ def get_cadence(cadence_url):
         entry['size'] = row[8]
         entry['md5sum'] = row[9]
         entry['url'] = row[10]
+        entry['tempX'] = row[13]
+        entry['tempY'] = row[14]
+        entry['quality'] = getQuality(entry)
         data.append(entry)
     #print(len(data))
     ##data = [x for x in data if x['url'].split("/")[-1].split("_")[-1].split('.')[0] == grade]
@@ -738,6 +752,9 @@ def get_cadence(cadence_url):
                     grade = fil_grades[grade]
                 if grade not in filterDict['grades'].split(','):
                     allowed = False
+        if allowed and 'quality' in filterDict.keys():
+            if entry['quality'] not in filterDict['quality']:
+                allowed=False
         if allowed:
             newCadence.append(entry)
 

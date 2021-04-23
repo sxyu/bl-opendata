@@ -7,6 +7,7 @@ import redis
 import json
 import numpy as np
 
+## BEGIN INITIALIZATION ##
 test_config = None
 
 app = Flask(__name__, instance_relative_config=True)
@@ -55,18 +56,18 @@ mysql.init_app(app)
 #     response = jsonify({'message': error.description['message']})
 
 
+## END INITIALIZATION ##
 
 
 
 
 
-
-
+## Helper Functions
 from datetime import timedelta
 def getTargets(data):
     if len(data)==0:
         return ([],[],[])
-    TOLERANCE = 10
+    TOLERANCE = 10 #seconds
     oldTime = data[0]['utc']
     oldTarget = data[0]['target']
     #oldTime = int(time.split(":")[1]) + int(time.split(":")[2])/60.
@@ -110,7 +111,7 @@ def getCadenceSet(ind,index,targets,times):
     return toReturn
 
 
-#TODO make this modular
+#TODO make this modular (tagging can be fuzzy)
 A19 = Time('2019-02-01T00:00:00',format='isot')
 B19 = Time('2019-08-01T00:00:00',format='isot')
 A20 = Time('2020-02-01T00:00:00',format='isot')
@@ -138,7 +139,7 @@ def getTemp(mjd,band):
     diff = [abs(time - t) for time in times]
     while len(keys)>0:
         i = np.argmin(diff)
-        if diff[i]>.5:
+        if diff[i]>.5:#in days
             return ("Unknown","Unknown","Unknown")
         key = keys.pop(i)
         result = str(r.hget("OREO_TSYS_"+tag,key))
@@ -172,11 +173,11 @@ def toBand(input):
 
 def toTime(dateString):
     newStr = dateString[:4]+"-"+dateString[4:6]+"-"+dateString[6:11]+":"+dateString[11:13]+":"+dateString[13:15]
-    print(newStr)
+    #print(newStr)
     return Time(newStr, format = 'isot',scale='utc')
 
 def updateTemp(id,temp):
-    print(id,temp)
+    #print(id,temp)
     forecast = temp[0]
     tempX = temp[1]
     tempY = temp[2]
@@ -208,93 +209,75 @@ def updateTemp(id,temp):
     cursor.close()
     conn.close()
 
-#
-sql_cmd = "Update files Set cadence = %s Where project != %s and (project != %s or not target_name LIKE %s);"
-#orig_print(id)
-conn = mysql.connect()
-cursor = conn.cursor()
-cursor.execute(sql_cmd,["Unknown","GBT", "parkes", "%\\__"])
-conn.commit()
-cursor.close()
-conn.close()
 
-
-
-
-#GBT work
-#for day in range(57348,59015):
-for day in range(57348,57349):
-    #Fetch data
-    sql_cmd = 'SELECT * FROM files WHERE '
-    sql_args = []
-
-    # t_start = Time(day, format='mjd')
-    # #print(t_start.utc.iso)
-    # sql_cmd +=  " utc_observed >= %s"
-    # sql_args.append(str(t_start.utc.iso))
-    #
-    # t_end = Time(day+1, format='mjd')
-    # sql_cmd +=  " AND utc_observed <= %s"
-    # sql_args.append(str(t_end.utc.iso))
-
-    sql_cmd += "project = %s"
-    sql_args.append("GBT")
-    sql_cmd += " ORDER BY utc_observed"
-
-    print(sql_cmd % (sql_args[0]))
+def updateUnknowns():
+    """
+    Sets all files that are not processed by this code to have unknown cadence and temperature
+    """
+    sql_cmd = "Update files Set cadence = %s Where project != %s and (project != %s or not target_name LIKE %s) and cadence != %s;"
+    #orig_print(id)
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute(sql_cmd, sql_args)
-    table = cursor.fetchall()
+    cursor.execute(sql_cmd,["Unknown","GBT", "parkes", "%\\__","Unknown"])
+    conn.commit()
+    cursor.close()
     conn.close()
 
+    sql_cmd = "Update files set tempX = %s WHERE project != %s and tempX != %s"
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd,["Unknown","GBT","Unknown"])
+    conn.commit()
+    cursor.close()
+    conn.close()
 
+    sql_cmd = "Update files set tempY = %s WHERE project != %s and tempY != %s"
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd,["Unknown","GBT","Unknown"])
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-    data = []
-    for row in table:
-        entry = {}
-        entry['id'] = row[0]
-        entry['target'] = row[3]
-        entry['url'] = row[10]
-        entry['utc'] = row[2]
-        entry['center_freq'] = row[6]
-        entry['mjd'] = Time(str(row[2]), format='iso').mjd #For efficiency sake should probobly change this later since it is just being converted back into utc within the method
-        entry['cadence-url'] = row[11]
-        data.append(entry)
-    #print(data)
+    sql_cmd = "Update files set tempForecast = %s WHERE project != %s and tempX != %s"
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    cursor.execute(sql_cmd,["Unknown","GBT","Unknown"])
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-
-    #Find cadences
+def process(data,handleTemp=False):
     skip =0
     url = 'Unknown'
     temp = (0,0,0)
     targets, indices,times = getTargets(data)
     for i in range(len(data)):
-        print(i)
+        if i%500==0:
+            print("%d/%d files processed."%(i,len(data)))
         id =data[i]['id']
-        if skip<0:
-            0/0
+        assert(skip>=0,"Can't skip negative targets")
         if skip:
             skip-=1
             sql_cmd = "Update files Set cadence = %s Where id = %s;"
-
-            #orig_print(id)
             conn = mysql.connect()
             cursor = conn.cursor()
-            print(sql_cmd % (url,id))
+            #print(sql_cmd % (url,id))
             cursor.execute(sql_cmd,[url,id])
             conn.commit()
             cursor.close()
             conn.close()
-            updateTemp(id,temp)
+            if handleTemp:
+                updateTemp(id,temp)
         else:
             index = indices[i]
             # stop = min(index+6,len(target))
             targetSet = getCadenceSet(i,indices,targets,times)
-            temp = getTemp(data[i]['mjd'],toBand(data[i]['center_freq']))
-            updateTemp(id,temp)
-            print(targetSet)
-            print(times[index:index+6])
+            if handleTemp:
+                temp = getTemp(data[i]['mjd'],toBand(data[i]['center_freq']))
+                updateTemp(id,temp)
+            #print(targetSet)
+            #print(times[index:index+6])
             if len(targetSet)==6 and isCadence(0,targetSet):
                 index = indices.index(index)
                 num = indices.index(min(len(targets)-1,indices[index]+6))-index
@@ -304,7 +287,7 @@ for day in range(57348,57349):
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()
-                print(sql_cmd % (url,id))
+                #print(sql_cmd % (url,id))
                 cursor.execute(sql_cmd,[url,id])
                 conn.commit()
                 cursor.close()
@@ -318,7 +301,7 @@ for day in range(57348,57349):
                 #orig_print(id)
                 conn = mysql.connect()
                 cursor = conn.cursor()
-                print(sql_cmd % (url,id))
+                #print(sql_cmd % (url,id))
                 cursor.execute(sql_cmd,[url,id])
                 conn.commit()
                 cursor.close()
@@ -328,109 +311,73 @@ for day in range(57348,57349):
                 #print(sql_cmd,[id])
                 conn = mysql.connect()
                 cursor = conn.cursor()
-                print(sql_cmd %(id))
+                #print(sql_cmd %(id))
                 cursor.execute(sql_cmd,[id])
                 conn.commit()
                 cursor.close()
                 conn.close()
 
-0/0
+
+## MAIN ##
+
+#GBT work
+
+sql_cmd = 'SELECT * FROM files WHERE '
+sql_args = []
+sql_cmd += "project = %s"
+sql_args.append("GBT")
+sql_cmd += " ORDER BY utc_observed"
+
+print(sql_cmd % (sql_args[0]))
+conn = mysql.connect()
+cursor = conn.cursor()
+cursor.execute(sql_cmd, sql_args)
+table = cursor.fetchall()
+conn.close()
+
+
+
+data = []
+for row in table:
+    entry = {}
+    entry['id'] = row[0]
+    entry['target'] = row[3]
+    entry['url'] = row[10]
+    entry['utc'] = row[2]
+    entry['center_freq'] = row[6]
+    entry['mjd'] = Time(str(row[2]), format='iso').mjd #For efficiency sake should probobly change this later since it is just being converted back into utc within the method
+    entry['cadence-url'] = row[11]
+    data.append(entry)
+    #print(data)
+process(data,handleTemp=True)
+
+
 #Parkes data
-#for day in range(57348,59001):
-for day in range(57348,59015):
-    #Fetch data
-    sql_cmd = 'SELECT * FROM files WHERE '
-    sql_args = []
 
-    t_start = Time(day, format='mjd')
-    #print(t_start.utc.iso)
-    sql_cmd +=  " utc_observed >= %s"
-    sql_args.append(str(t_start.utc.iso))
+sql_cmd = 'SELECT * FROM files WHERE '
+sql_args = []
+sql_cmd += "project = %s"
+sql_args.append("parkes")
+sql_cmd += " AND target_name LIKE %s"
+sql_args.append("%\\__")
+sql_cmd += " ORDER BY utc_observed"
 
-    t_end = Time(day+1, format='mjd')
-    sql_cmd +=  " AND utc_observed <= %s"
-    sql_args.append(str(t_end.utc.iso))
-
-    sql_cmd += " AND project = %s"
-    sql_args.append("parkes")
-    sql_cmd += " AND target_name LIKE %s"
-    sql_args.append("%\\__")
-    sql_cmd += " ORDER BY utc_observed"
-    conn = mysql.connect()
-    cursor = conn.cursor()
-    cursor.execute(sql_cmd, sql_args)
-    table = cursor.fetchall()
-    conn.close()
+#print(sql_cmd % (sql_args))
+conn = mysql.connect()
+cursor = conn.cursor()
+cursor.execute(sql_cmd, sql_args)
+table = cursor.fetchall()
+conn.close()
 
 
-    data = []
-    for row in table:
-        entry = {}
-        entry['id'] = row[0]
-        entry['target'] = row[3]
-        entry['url'] = row[10]
-        entry['utc'] = row[2]
-        entry['cadence-url'] = row[11]
-        data.append(entry)
+data = []
+for row in table:
+    entry = {}
+    entry['id'] = row[0]
+    entry['target'] = row[3]
+    entry['url'] = row[10]
+    entry['utc'] = row[2]
+    entry['cadence-url'] = row[11]
+    data.append(entry)
 
-
-
-    #Find cadences
-    skip =0
-    url = 'Unknown'
-    targets, indices,times = getTargets(data)
-    for i in range(len(data)):
-        #print(i)
-        id =data[i]['id']
-        if skip:
-            skip-=1
-            sql_cmd = "Update files Set cadence = %s Where id = %s;"
-            #print(id,url)
-            #orig_print(id)
-            conn = mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute(sql_cmd,[url,id])
-            conn.commit()
-            cursor.close()
-            conn.close()
-        else:
-            index = indices[i]
-            stop = min(index+6,len(data)-1)
-            targetSet = targets[index:stop]
-            print(targetSet)
-            if len(targetSet)==6 and isCadence(0,targetSet):
-                print('Success')
-                index = indices.index(index)
-                num = indices.index(min(len(targets)-1,indices[index]+6))-index
-                url = id
-                skip = num-1
-                sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                #orig_print(id)
-                conn = mysql.connect()
-                cursor = conn.cursor()
-                cursor.execute(sql_cmd,[url,id])
-                conn.commit()
-                cursor.close()
-                conn.close()
-            elif len(targetSet)>=4 and isPartialCadence(0,targetSet):
-                index = indices.index(index)
-                num = indices.index(min(len(targets)-1,indices[index]+4))-index
-                url = id
-                skip = num-1
-                sql_cmd = "Update files Set cadence = %s Where id = %s;"
-                #orig_print(id)
-                conn = mysql.connect()
-                cursor = conn.cursor()
-                cursor.execute(sql_cmd,[url,id])
-                conn.commit()
-                cursor.close()
-                conn.close()
-            else:
-                sql_cmd = "Update files Set cadence = 'Unknown' Where id = %s;"
-                #print(sql_cmd,[id])
-                conn = mysql.connect()
-                cursor = conn.cursor()
-                cursor.execute(sql_cmd,[id])
-                conn.commit()
-                cursor.close()
-                conn.close()
+process(data,handleTemp=False)
