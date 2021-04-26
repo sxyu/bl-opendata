@@ -2,6 +2,8 @@
 
 ## Testing Version Specific Features:
 * Live version is up to Date.
+#### Bug Fixes:
+* Fixed a bug where cadenceUrls are generated incorrectly by get-cadence-url and query-files.
 
 ## Version 2.0 (04/26/21):
 ### New Features:
@@ -10,7 +12,7 @@
 * Created a quality system to grade scan quality, currently it is based on how hot the system was compared to a target temperature for each band.
 * Created a process.py file which processes all the data stored in the database as well as querying the redis database for temperature information. This enables quality searches and the tempX and tempY keys to get populated, while also enabling a 1000x+ speedup of cadence searches.
 * Modified postion search such that if only "pos-rad" is passed in, but "pos-dec", "pos-ra" are not, then as long as "target" is an actual target in the database it will perform a postion search as if target = "" and pos-ra and pos-dec are set to the ra and dec of the target entered. 
-* Created a ReadMe doccumenting the various features of the Backend-API (and to a lesser extent the frontend website).
+* Expanded the ReadMe to include documenting the various features of the Backend-API (and to a lesser extent the frontend website), rather than simply documenting the steps needed to get the flask-API up and running.
 #### API Features:
 * Added "/api/get-cadence-url" which takes in the id of a scan and returns a "cadenceUrl" (a url corresponding the the getCadence API call below) or "Unknown" if no cadence is found.
 * Added "/api/get-cadence/<string:cadence_url>" which takes in the id of the "head" of a cadence as well as a set of filters and returns a Json containing all the stored information corresponding to all the entries of the cadence matching the filter. This method isn't meant to be called directly but rather meant to be called using the cadenceURLs found above.
