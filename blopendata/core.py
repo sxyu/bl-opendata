@@ -26,7 +26,7 @@ bp = Blueprint('core', __name__, url_prefix='/')
 import requests
 from statistics import mode
 openDataAPI ="http://35.236.84.6:5001/api/"
-#openDataAPI = "http://seti.berkeley.edu/opendata" Uncomment Me and comment the above line.
+#openDataAPI = "http://seti.berkeley.edu/opendata/api/" Uncomment Me and comment the above line.
 grades = {"fine","mid","time"}
 fil_grades = {"0000":"fine","0001":"time","0002":"mid"}
 grades_fil = {"fine":"0000","time":"0001","mid":"0002"}
