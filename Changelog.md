@@ -1,7 +1,6 @@
 # Changelog
 
 ## Testing Version Specific Features:
-* Live version is up to Date.
 #### Bug Fixes:
 * Fixed a bug where cadenceUrls are generated incorrectly by get-cadence-url and query-files.
 
