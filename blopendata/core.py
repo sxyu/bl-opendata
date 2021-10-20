@@ -20,7 +20,8 @@ SYS_TMP_FOLDER = tempfile.gettempdir()
 
 STATIC_FOLDER = os.path.join('blopendata', 'static')
 SIMBAD_CACHE_PATH = os.path.join(DATA_FOLDER, 'simbad-ids.pkl')
-
+PAPER_NAMES = ['Traas Et Al. 2021']
+PAPER_NAME_TO_FILE = {'Traas Et Al. 2021':'traas2021.ids'}
 bp = Blueprint('core', __name__, url_prefix='/')
 ## Gavin
 import requests
@@ -141,6 +142,10 @@ def api_list_quality():
     """ get list of quality grades that can be searched on"""
     return jsonify(['A','B','C','F','Ungraded'])
 
+@bp.route('/api/list-papers', methods=('GET',))
+def api_list_papers():
+    """ get list of papers that can be filtered on"""
+    return jsonify(PAPER_NAMES)
 # orig_print = print
 # print = str
 
@@ -151,7 +156,7 @@ def api_query():
     query for a list of files with associated info
     possible arguments: target, telescopes (comma-sep), file-types (comma-sep),
                         pos-ra, pos-dec, pos-rad, time-start, time-end, freq-start, freq-end, limit
-                        cadence, grades, primaryTarget, quality, minSize, maxSize
+                        cadence, grades, primaryTarget, quality, minSize, maxSize, paperName
     returns: dictionary d with d["result"] in {"success", "error"}
                                d["message"] set to message on result "error"
                                d["data"] set to query result set on result "success"
@@ -179,6 +184,12 @@ def api_query():
     else:
         sql_cmd += ' LIKE %s'
         sql_args.append('%' + target + ('%' if target else ''))
+
+    if 'paperName' in request.args:
+        paperName = request.args.get('paperName')
+        ids = readPaper(paperName)
+        sql_cmd += " AND id in ({})".format(",".join(["%s"] * len(ids)))
+        sql_args.extend(ids)
 
     if 'telescopes' in request.args:
         telescopes_str = request.args.get('telescopes').split(',')
@@ -345,7 +356,7 @@ def api_query():
 
 
 
-    print(sql_cmd, sql_args)
+    print(sql_cmd,sql_args)
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute(sql_cmd, sql_args)
@@ -800,9 +811,18 @@ def getCalibratorRedisData(entry):
 
 def getPulsarRedisData(entry):
     return NotDefined
+def readPaper(paperName):
+    fileName = PAPER_NAME_TO_FILE[paperName]
+    ids = []
+    print(os.getcwd())
+    with open("blopendata/papers/" + fileName, "r") as f:
+        for id in f:
+            ids.append(int(id))
+    return ids
 
 recieverToBand = {"Rcvr1_2":"L","Rcvr2_3":"S","Rcvr4_6":"C","Rcvr8_10":"X","Rcvr8_12":"X","Rcvr12_18":"Ku","Rcvr18_26":"K"}
 def toBand(input):
+    """WARNING: will not work with new data that is not centered"""
     if type(input)==str:
         return recieverToBand[input]
     else:

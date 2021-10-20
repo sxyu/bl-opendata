@@ -117,10 +117,11 @@ B19 = Time('2019-08-01T00:00:00',format='isot')
 A20 = Time('2020-02-01T00:00:00',format='isot')
 B20 = Time('2020-08-01T00:00:00',format='isot')
 A21 = Time('2021-02-01T00:00:00',format='isot')
+B21 = Time('2021-08-01T00:00:00',format='isot')
 def getTemp(mjd,band):
     t = Time(float(mjd),format='mjd')
     #year = int(str(t.utc.iso).split("-")[0])
-    tag = "21A"
+    tag = "21B"
     if t<A19:
         return ("Unknown","Unknown","Unknown")
     elif t<B19:
@@ -131,6 +132,8 @@ def getTemp(mjd,band):
         tag = "20A"
     elif t<A21:
         tag = "20B"
+    elif t<B21:
+        tag = "21A"
     h = 'localhost'
     p = 6379
     r = redis.Redis(host=h,port=p,db=0)

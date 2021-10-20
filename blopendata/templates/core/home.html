@@ -20,7 +20,8 @@
             <input type="text" class="form-control basic-auto-complete" id="query" placeholder="Type to search...">
             <div class="custom-control custom-checkbox">
              <input type="checkbox" disabled = true class="custom-control-input" id="targetCentered"></input>
-              <label class="custom-control-label" for="targetCentered" >Search Around This Target</label>
+             <label class="custom-control-label" for="targetCentered" >Search Around This Target</label>
+             <button onclick="saveUrl()" style="float:right">Save Query as Url</button>
             </div>
             <span id="input-error"></span>
             <!-- search options -->
@@ -148,6 +149,13 @@
                                     <label for="freq-end" title="J2000 System">Max Frequency (MHz)</label>
                                     <input step="0.5" type="number" id="freq-end" value="500000" data-decimals="4" min="0" max="500000" />
                                 </div>
+                                <div class="col-lg input-panel">
+                                    <h4><i class="fa fa-file-alt"></i> Misc. Options</h4>
+                                    <label for="paper-name">Paper:</label>
+                                    <select id="paper-name" name="paper-name">
+                                      <option value="none">N/A</option>
+                                    </select>
+                                </div>
                              </div>
                         </div>
                     </div>
@@ -225,6 +233,26 @@
         <!-- Featherlight lightbox container -->
         <div id="fl-box"><div id="fl-box-inner"></div></div>
     </div>
+
+    <!-- Url Generation Modal-->
+    <div id = "url-modal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Url:</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" id = "url-modal-body">
+            <p>Modal body text goes here.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+  </div>
 {% endblock %}
 
 {% block footer %}

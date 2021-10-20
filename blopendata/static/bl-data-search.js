@@ -1,9 +1,13 @@
+const openDataAPI = "http://35.236.84.6:5001/api/";
+const TELESCOPES = ["gbt","parkes","apf"];
+const FILETYPES = ["fil","hdf5","baseband","fits"];
+const DATATYPES = ["fine","mid","time"];
+const QUALITIES = ['A','B','C','F',"Ungraded"];
 $(document).ready(function(){
         /*-- Celestial initialization --*/
         /* D3-Celestial sky map, copyright 2015 Olaf Frohn https://github.com/ofrohn */
         /* create a default Celestial config object, with parent object ID 'containerName' */
-        var urlToID = {}
-        var openDataAPI ="http://35.236.84.6:5001/api/"
+        var urlToID = {};
         //var openDataAPI = "http://seti.berkeley.edu/opendata/api/" Uncomment Me and comment out above line
         var getCelestialConfig = function(containerName = "celestial-map") {
           return {
@@ -222,6 +226,11 @@ $(document).ready(function(){
 
         updateCelestial();
 
+        let trueString = function(str){
+          return str && (str=="1" || str=="True" || str=="str");
+        }
+
+
         /* convert 'bytes' to human readable file size. If 'si' is set, uses MB, GB, etc. instead of MiB, etc. */
         function _humanFileSize(bytes, si) {
             var thresh = si ? 1000 : 1024;
@@ -407,6 +416,7 @@ $(document).ready(function(){
                 data['time-end'] = timeEnd;
             }
 
+
             // freq
             var freqStart = parseFloat($('#freq-start').val());
             var freqEnd = parseFloat($('#freq-end').val());
@@ -419,6 +429,10 @@ $(document).ready(function(){
                 data['freq-end'] = freqEnd;
             }
 
+            let paperName = $('#paper-name').val();
+            if (paperName != 'none'){
+              data['paperName'] = paperName
+            }
             if (lim > 0) {
                 data['limit'] = lim;
             }
@@ -487,6 +501,143 @@ $(document).ready(function(){
             }, 500);
         }
 
+        let initializeSearchOptions = function(){
+          let params = new URL(window.location.href).searchParams;
+
+
+
+
+            let target = params.get("target");
+            if (target){
+              $('#query').val(target);
+            }
+
+            let targetCentered = params.get("targetCentered"); //TODO: Improve the behavior of targetCentered to only work in a valid situation
+            if (trueString(targetCentered)){
+              $("#targetCentered").prop("checked",true);
+            }
+
+            let telescopes = JSON.parse(params.get("telescopes"));
+            if (telescopes){
+              for (const teleName of TELESCOPES){
+                $("#telescope-"+teleName).prop("checked", false);
+              }
+              for (const teleName of telescopes){
+                $("#telescope-"+teleName).prop("checked", true);
+              }
+            }
+
+            let fileTypes = JSON.parse(params.get("fileTypes"));
+            if (fileTypes){
+              for (const fileType of FILETYPES){
+                $("#ftype-"+fileType).prop("checked", false);
+              }
+              for (const fileType of fileTypes){
+                $("#ftype-"+fileType).prop("checked", true);
+              }
+            }
+
+            let dataTypes = JSON.parse(params.get("dataTypes"));
+            if (dataTypes){
+              for (const name of DATATYPES){
+                $("#data-"+name).prop("checked", false);
+              }
+              for (const name of dataTypes){
+                $("#data-"+name).prop("checked", true);
+              }
+            }
+
+            let qualities = JSON.parse(params.get("qualities"));
+            if (qualities){
+              for (const name of QUALITIES){
+                $("#quality-"+name).prop("checked", false);
+              }
+              for (const name of qualities){
+                $("#quality-"+name).prop("checked", true);
+              }
+            }
+
+            let cadence = params.get("cadence");
+            if (trueString(cadence)){
+              $("#cadence-on").prop("checked",true);
+              let primaryTarget = params.get("primaryTarget");
+              if (trueString(primaryTarget)){
+                $("#primaryTarget").prop("checked",true);
+                $("#primaryTarget").prop("disabled",false);
+              }
+            }
+
+            let posSearch = params.get("posSearch");
+            if (trueString(posSearch)){
+              $('#pos-enable').prop("checked",true)
+
+              let ra = params.get("posRa");
+              if (ra){
+                ra = parseFloat(ra);
+                $('#pos-ra').val(ra);
+              }
+
+              let dec = params.get("posDecl");
+              if (dec){
+                dec = parseFloat(dec);
+                $('#pos-decl').val(dec);
+              }
+
+              let rad = params.get("posRadius");
+              if (rad){
+                rad = parseFloat(rad);
+                $('#pos-rad').val(rad);
+              }
+            }
+
+            let startTime = params.get("startTime");
+            if (startTime){
+              startTime = parseFloat(startTime);
+              $('#time-start').val(startTime);
+            }
+
+            let endTime = params.get("endTime");
+            if (endTime){
+              endTime = parseFloat(endTime);
+              $('#time-end').val(endTime);
+            }
+
+            let startFreq = params.get("startFreq");
+            if (startFreq){
+              startFreq = parseFloat(startFreq);
+              $('#freq-start').val(startFreq);
+            }
+
+            let endFreq = params.get("endFreq");
+            if (endFreq){
+              endFreq = parseFloat(endFreq);
+              $('#freq-end').val(endFreq);
+            }
+
+            $.get(openDataAPI+ "list-papers",
+              function(paperNames) {
+                  console.log(paperNames)
+                  paperNames.forEach(paper =>
+                    $('#paper-name').append(`<option value="`+paper+`">`+paper+`</option>`)
+                  )
+                  let paper = params.get("paperName");
+                  if (paper){
+                    $('#paper-name').val(paper);
+                    if (  $('#paper-name').val()!=paper){
+                      $('#paper-name').val('none');
+                    }
+                  }
+                  let onload = params.get("onLoad");
+                  if (trueString(onload)){
+                    _updateQuery(500);
+                  }
+              });
+
+
+
+
+        }
+        initializeSearchOptions();
         // set up autocomplete
         $.get(openDataAPI+"list-targets?simbad", function(targetsList) {
             // fetch list of targets first
@@ -569,6 +720,10 @@ $(document).ready(function(){
         });
         document.getElementById('targetCentered').onchange=_updateQuery;
         $('#search-options').find("input[type='number']").on("change", function (event) {
+            updateQuery();
+        })
+
+        $('#search-options').find("select").on("change", function (event) {
             updateQuery();
         })
 
@@ -823,110 +978,6 @@ $(document).ready(function(){
           }
         });
 
-              // $.get(link, function(result) {
-              //     // fetch list of targets first
-              //     var entries = result['data']
-              //     for (var i = 0; i < entries.length; i++) {
-              //       flhtml += "<tr><td>Downloads:</td><td><a href=\"" + entries[i]['url']+ "\">" + entires[i]['target'] + "</a></td></tr>";
-              //     }
-              // });
-
-              //flhtml += "<tr><td>Downloads:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
-              // flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-              // flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
-              // flhtml += "</tbody></table>";
-              // flbox.html(flhtml);
-           //  }
-           //  else{
-           //    flhtml += "<table class=\"table\"><thead><tr><th colspan=2>" + tds[3].innerText + "</th></tr></thead><tbody>";
-           //    if (tds[3].innerText in targets) {
-           //        flhtml += "<tr><td>Alt Identifiers (From SIMBAD):</td><td>" + targets[tds[3].innerText].join(',  ') + "</td></tr>";
-           //    }
-           //    flhtml += "<tr><td>Time (UTC):</td><td>" + tds[0].innerText + "</td></tr>";
-           //    flhtml += "<tr><td>Time (<acronym title=\"Modified Julian Date (days since midnight, November 17, 1858)\">MJD</acronym>):</td><td>" + tds[1].innerText + "</td></tr>";
-           //    flhtml += "<tr><td>Telescope:</td><td>" + tds[2].innerText + "</td></tr>";
-           //    flhtml += "<tr><td>RA (&deg;):</td><td>" + tds[4].innerText + "</td></tr>";
-           //    var ra = parseFloat(tds[4].innerText) / 15.0;
-           //    var raH = Math.floor(ra);
-           //    var raM = Math.floor((ra - raH) * 60.);
-           //    var raS = (ra - raH - raM / 60.) * 3600.;
-           //    flhtml += "<tr><td>RA (h:m:s):</td><td>" + raH + ":" + raM + ":" + raS.toFixed(1) + "</td></tr>";
-           //    flhtml += "<tr><td>Declination (&deg;):</td><td>" + tds[5].innerText + "</td></tr>";
-           //    flhtml += "<tr><td>Center Freq (MHz):</td><td>" + tds[6].innerText + "</td></tr>";
-           //    flhtml += "<tr><td>File Type:</td><td>" + tds[7].innerText + "</td></tr>";
-           //    flhtml += "<tr><td>File Size:</td><td>" + tds[8].innerText + "</td></tr>";
-           //    var link = tds[9].innerHTML;
-           //    link = link.substr(link.indexOf("href") + 6);
-           //    link = link.substr(0, link.indexOf("\""));
-           //    var md5 = tds[9].innerHTML;
-           //    md5 = md5.substr(md5.indexOf("MD5Sum: ") + 8);
-           //    md5 = md5.substr(0, md5.indexOf("\""));
-           //
-           //    //flhtml += "<tr><td>Temperature:</td><td>" + entries[i]['tempX'] + "</td></tr>";
-           //
-           //    flhtml += "<tr><td>Download:</td><td><a href=\"" + link + "\">" + link + "</a></td></tr>";
-           //    flhtml += "<tr><td>MD5 Sum:</td><td>" + md5 + "</td></tr>";
-           //    flhtml += "<tr><td>SIMBAD Query (If Applicable):</td><td><a href=\"http://simbad.u-strasbg.fr/simbad/sim-id?protocol=html&Ident=" + tds[3].innerText + "\" target=\"_blank\">" + tds[3].innerText + "</td></tr>";
-           //    let diagLink = openDataAPI + "get-diagnostic-sources/Pulsar/" + urlToID[link]
-           //    $.ajax({
-           //      dataType: "json",
-           //      type:"GET",
-           //      url: diagLink ,
-           //      async: false,
-           //      success: function(result) {
-           //        if(result['result']=='success'){
-           //          let names = result['names']
-           //          let urls = result['urls']
-           //          if(names.length>0){
-           //            flhtml += "<tr><td>Pulsars: </td><td>";
-           //            for(let i=0;i<names.length;i++){
-           //              if(i<names.length-1){
-           //                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
-           //              }
-           //              else{
-           //                flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
-           //              }
-           //            }
-           //            flhtml += "</td></tr>"
-           //          }
-           //        }
-           //      },
-           //      complete: function(){
-           //        let diagLink = openDataAPI + "get-diagnostic-sources/Calibrator/" + urlToID[link]
-           //        $.ajax({
-           //          dataType: "json",
-           //          type:"GET",
-           //          url: diagLink ,
-           //          async: false,
-           //          success: function(result) {
-           //            if(result['result']=='success'){
-           //              let names = result['names']
-           //              let urls = result['urls']
-           //              if(names.length>0){
-           //                flhtml += "<tr><td>Calibrators: </td><td>";
-           //                for(let i=0;i<names.length;i++){
-           //                  if(i<names.length-1){
-           //                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ ", </a>";
-           //                  }
-           //                  else{
-           //                    flhtml += "<a href=\"" + urls[i]+ "\">" + names[i]+ "</a>";
-           //                  }
-           //                }
-           //                flhtml += "</td></tr>"
-           //              }
-           //            }
-           //          },
-           //          complete: function(){
-           //            flhtml += "</tbody></table>";
-           //            flbox.html(flhtml);
-           //          }
-           //        });
-           //      }
-           //    });
-           //    // flhtml += "</tbody></table>";
-           //    // flbox.html(flhtml);
-
-
           var flboxOuter = $('#fl-box');
           $.featherlight(flboxOuter);
           } ); // click
@@ -940,3 +991,120 @@ $(document).ready(function(){
 
         queryBox.focus();
 }); //ready
+function saveUrl(){
+  let savedUrl = openDataAPI.substring(0,openDataAPI.length-4) + "?onLoad=1";
+  let target  = $('#query').val();
+  if(target){
+    savedUrl += "&target="+target;
+  }
+
+  var telGBT = $('#telescope-gbt')[0].checked;
+  var telParkes = $('#telescope-parkes')[0].checked;
+  var telAPF = $('#telescope-apf')[0].checked;
+  if (!(telGBT && telParkes && telAPF)) {
+      let telescopes = [];
+      if (telGBT) telescopes.push("gbt");
+      if (telParkes) telescopes.push("parkes");
+      if (telAPF) telescopes.push("apf");
+      if (telescopes.length >0){
+        savedUrl += "&telescopes=" +JSON.stringify(telescopes);
+      }
+
+  }
+
+  // file types
+  var ftypeFil = $('#ftype-fil')[0].checked;
+  var ftypeHDF5 = $('#ftype-hdf5')[0].checked;
+  var ftypeBaseband = $('#ftype-baseband')[0].checked;
+  var ftypeFITS = $('#ftype-fits')[0].checked;
+  if (!(ftypeFil && ftypeHDF5 && ftypeBaseband && ftypeFITS)) {
+      let ftypes = [];
+      if (ftypeFil) ftypes.push("filterbank");
+      if (ftypeHDF5) ftypes.push("hdf5");
+      if (ftypeBaseband) ftypes.push("baseband data");
+      if (ftypeFITS) ftypes.push("fits");
+      if (ftypes.length > 0) {
+        savedUrl += "&fileTypes=" +JSON.stringify(ftypes);
+      }
+  }
+
+
+  // // Data types
+  var fineData = $('#data-fine')[0].checked;
+  var midData= $('#data-mid')[0].checked;
+  var timeData = $('#data-time')[0].checked;
+  if(!(fineData && midData && timeData)){
+      let dataTypes = [];
+      if (fineData) dataTypes.push("fine");
+      if (midData) dataTypes.push("mid");
+      if (timeData) dataTypes.push("time");
+      if (dataTypes.length > 0) {
+        savedUrl += "&dataTypes=" + JSON.stringify(dataTypes)
+      }
+  }
+
+  // Quality
+  var qualityA = $('#quality-A')[0].checked;
+  var qualityB = $('#quality-B')[0].checked;
+  var qualityC = $('#quality-C')[0].checked;
+  var qualityF = $('#quality-F')[0].checked;
+  var qualityUngraded = $('#quality-Ungraded')[0].checked;
+  if(!(qualityA && qualityB && qualityC && qualityF && qualityUngraded)){
+      let qualities = [];
+      if (qualityA) qualities.push("A");
+      if (qualityB) qualities.push("B");
+      if (qualityC) qualities.push("C");
+      if (qualityF) qualities.push("F");
+      if (qualityUngraded) qualities.push("Ungraded");
+      if (qualities.length > 0) {
+        savedUrl +="&qualities="+JSON.stringify(qualities);
+      }
+  }
+
+
+  var cadence = $('#cadence-on')[0].checked;
+  if(cadence){
+      savedUrl +="&cadence=1";
+      let primaryTarget = $('#primaryTarget')[0].checked;
+      if(primaryTarget){
+        savedUrl += "&primaryTarget=1";
+      }
+  }
+
+  // position
+  var posEnabled = $('#pos-enable')[0].checked;
+  if (posEnabled ) {
+      var posRA = $('#pos-ra').val();
+      var posDec = $('#pos-decl').val();
+      var posRad = $('#pos-rad').val();
+      savedUrl += "*posSearch=1&posRa="+posRA +"&posDecl="+posDec+"&posRadius="+posRad;
+  }
+  var targetCentered = $('#targetCentered')[0].checked;
+  if(targetCentered){
+    savedUrl += "&targetCentered=1";
+  }
+
+  // time
+  var timeStart = parseFloat($('#time-start').val());
+  var timeEnd = parseFloat($('#time-end').val());
+  if (timeStart > parseFloat($('#time-start')[0].min) || timeEnd < parseFloat($('#time-end')[0].max)) {
+      savedUrl+="&startTime="+timeStart +"&endTime="+timeEnd;
+  }
+
+
+  // freq
+  var freqStart = parseFloat($('#freq-start').val());
+  var freqEnd = parseFloat($('#freq-end').val());
+  if (freqStart > parseFloat($('#freq-start')[0].min) || freqEnd < parseFloat($('#freq-end')[0].max)) {
+      savedUrl+="&startFreq="+timeStart +"&endFreq="+timeEnd;
+  }
+
+  let paperName = $('#paper-name').val();
+  if (paperName != 'none'){
+    savedUrl += "&paperName="+ paperName;
+  }
+  // navigator.clipboard.writeText(savedUrl);
+  // alert("Url: " + savedUrl);
+  $("#url-modal-body").html("<p>"+savedUrl+"</p>");
+  $("#url-modal").modal('show');
+}
