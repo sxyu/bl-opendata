@@ -17,11 +17,12 @@ DATA_FOLDER = 'data'
 PUBLIC_FOLDER = '../data'
 TMP_FOLDER = 'tmp'
 SYS_TMP_FOLDER = tempfile.gettempdir()
+HARDLIMIT = 10000
 
 STATIC_FOLDER = os.path.join('blopendata', 'static')
 SIMBAD_CACHE_PATH = os.path.join(DATA_FOLDER, 'simbad-ids.pkl')
-PAPER_NAMES = ['Traas Et Al. 2021']
-PAPER_NAME_TO_FILE = {'Traas Et Al. 2021':'traas2021.ids'}
+PAPER_NAMES = ['Traas Et Al. 2021',"Test Paper"]
+PAPER_NAME_TO_FILE = {'Traas Et Al. 2021':'traas2021.ids',"Test Paper":'testPaper.ids'}
 bp = Blueprint('core', __name__, url_prefix='/')
 ## Gavin
 import requests
@@ -174,6 +175,7 @@ def api_query():
 
     sql_cmd = 'SELECT * FROM files WHERE target_name'
     sql_args = []
+    activeLim = HARDLIMIT
 
     if len(target) > 1 and target[0] in ['!', '/']:
         if target[0] == '!':
@@ -190,6 +192,7 @@ def api_query():
         ids = readPaper(paperName)
         sql_cmd += " AND id in ({})".format(",".join(["%s"] * len(ids)))
         sql_args.extend(ids)
+        activeLim = 100000
 
     if 'telescopes' in request.args:
         telescopes_str = request.args.get('telescopes').split(',')
@@ -334,23 +337,23 @@ def api_query():
     qualities = None
     if 'quality' in request.args:
         qualities = request.args.get('quality').split(',')
-        print(qualities)
+        #print(qualities)
         if "Ungraded" not in qualities:
             sql_cmd += " AND tempX != %s AND tempX is not Null"
             sql_args.append("Unknown")
 
-    hardLimit = 10000
+
     if 'limit' in request.args:
         lim = int(request.args.get('limit'))
-        lim = min(lim,hardLimit)
+        lim = min(lim,activeLim)
         sql_cmd +=  " LIMIT %s"
-        if 'cadence' in request.args and lim <hardLimit//10:
-            sql_args.append(lim*10) #TODO update this to work nicer
+        if 'cadence' in request.args:
+            sql_args.append(min(lim*20,activeLim)) #TODO update this to work nicer
         else:
             sql_args.append(lim)
     else:
         sql_cmd +=  " LIMIT %s"
-        sql_args.append(hardLimit)
+        sql_args.append(activeLim)
 
 
 

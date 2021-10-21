@@ -432,6 +432,7 @@ $(document).ready(function(){
             let paperName = $('#paper-name').val();
             if (paperName != 'none'){
               data['paperName'] = paperName
+              lim = 0
             }
             if (lim > 0) {
                 data['limit'] = lim;
