@@ -18,6 +18,7 @@ PUBLIC_FOLDER = '../data'
 TMP_FOLDER = 'tmp'
 SYS_TMP_FOLDER = tempfile.gettempdir()
 HARDLIMIT = 10000
+PAPERLIMIT = 100000
 
 STATIC_FOLDER = os.path.join('blopendata', 'static')
 SIMBAD_CACHE_PATH = os.path.join(DATA_FOLDER, 'simbad-ids.pkl')
@@ -192,7 +193,7 @@ def api_query():
         ids = readPaper(paperName)
         sql_cmd += " AND id in ({})".format(",".join(["%s"] * len(ids)))
         sql_args.extend(ids)
-        activeLim = 100000
+        activeLim = PAPERLIMIT
 
     if 'telescopes' in request.args:
         telescopes_str = request.args.get('telescopes').split(',')
@@ -432,7 +433,7 @@ def api_query():
                 ##print(entry['url'])
                 cadence_url = entry['cadence_url']
                 if cadence_url not in cadences:
-                    print(cadence_url,entry['id'])
+                    #print(cadence_url,entry['id'])
                     if not primaryTarget or str(cadence_url) == str(entry['id']):
                         cadences.add(cadence_url)
                         #orig_print(cadence_url)
